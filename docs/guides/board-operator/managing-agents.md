@@ -28,7 +28,8 @@ Create agents from the Agents page. Each agent requires:
 - **Capabilities** — short description of what this agent does
 
 Common adapter choices:
-- `claude_local` / `codex_local` / `opencode_local` for local coding agents
+- `claude_local` / `codex_local` / `opencode_local` / `gemini_local` / `hermes_local` / `cursor` for local coding agents
+- `pi_local` for embedded Pi agents
 - `openclaw_gateway` / `http` for webhook-based external agents
 - `process` for generic local command execution
 

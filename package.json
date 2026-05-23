@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "node scripts/dev-runner.mjs watch",
     "dev:watch": "node scripts/dev-runner.mjs watch",
+    "dev:login-path": "./scripts/run-dev-with-login-path.sh",
+    "preflight:dev": "./scripts/preflight-dev.sh",
+    "verify:cursor-agent-path": "./scripts/verify-cursor-agent-cli-path.sh",
     "dev:once": "node scripts/dev-runner.mjs dev",
     "dev:server": "pnpm --filter @paperclipai/server dev",
     "dev:ui": "pnpm --filter @paperclipai/ui dev",
@@ -36,8 +39,9 @@
     "test:release-smoke:headed": "npx playwright test --config tests/release-smoke/playwright.config.ts --headed",
     "phase1:simulate": "pnpm -C server phase1:simulate",
     "phase1:crewai-smoke": "pnpm -C server phase1:crewai-smoke",
+    "phase1:langgraph-smoke": "pnpm -C server phase1:langgraph-smoke",
     "phase1:runtime-matrix": "pnpm -C server phase1:runtime-matrix",
-    "phase1:flow": "pnpm phase1:simulate && pnpm phase1:runtime-matrix && pnpm phase1:crewai-smoke"
+    "phase1:flow": "pnpm phase1:simulate && pnpm phase1:runtime-matrix && pnpm phase1:crewai-smoke && pnpm phase1:langgraph-smoke"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

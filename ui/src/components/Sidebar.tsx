@@ -11,6 +11,8 @@ import {
   Boxes,
   Repeat,
   Settings,
+  Activity,
+  Rocket,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarSection } from "./SidebarSection";
@@ -80,6 +82,7 @@ export function Sidebar() {
             <span className="truncate">New Issue</span>
           </button>
           <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/apps" label="Apps" icon={Rocket} />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"
@@ -113,6 +116,7 @@ export function Sidebar() {
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
           <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+          <SidebarNavItem to="/status" label="Status" icon={Activity} />
         </SidebarSection>
 
         <PluginSlotOutlet

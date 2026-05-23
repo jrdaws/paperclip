@@ -1,5 +1,6 @@
 import { startTransition, useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@/lib/router";
 import { pickTextColorForPillBg } from "@/lib/color-contrast";
 import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
@@ -21,8 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { CircleDot, Plus, Filter, ArrowUpDown, Layers, Check, X, ChevronRight, List, Columns3, User, Search } from "lucide-react";
-import { KanbanBoard } from "./KanbanBoard";
+import { CircleDot, Plus, Filter, ArrowUpDown, Layers, Check, X, ChevronRight, List, Columns3, User, Search, Keyboard, Rows3 } from "lucide-react";
+import { KanbanBoard, BoardMetrics, ACTIVE_STATUSES, ALL_BOARD_STATUSES, type WipLimits } from "./KanbanBoard";
 import type { Issue } from "@paperclipai/shared";
 
 /* ── Helpers ── */
@@ -47,6 +48,7 @@ export type IssueViewState = {
   groupBy: "status" | "priority" | "assignee" | "none";
   viewMode: "list" | "board";
   collapsedGroups: string[];
+  swimlaneBy: "none" | "assignee" | "project";
 };
 
 const defaultViewState: IssueViewState = {
@@ -60,6 +62,7 @@ const defaultViewState: IssueViewState = {
   groupBy: "none",
   viewMode: "list",
   collapsedGroups: [],
+  swimlaneBy: "none",
 };
 
 const quickFilterPresets = [
@@ -142,6 +145,170 @@ function countActiveFilters(state: IssueViewState): number {
   if (state.labels.length > 0) count++;
   if (state.projects.length > 0) count++;
   return count;
+}
+
+/* ── WIP Limits persistence ── */
+
+const WIP_LIMITS_KEY = "paperclip:wip-limits";
+
+function getWipLimits(companyId: string): WipLimits {
+  try {
+    const raw = localStorage.getItem(`${WIP_LIMITS_KEY}:${companyId}`);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function saveWipLimits(companyId: string, limits: WipLimits) {
+  localStorage.setItem(`${WIP_LIMITS_KEY}:${companyId}`, JSON.stringify(limits));
+}
+
+/* ── Collapsed columns persistence ── */
+
+const COLLAPSED_COLS_KEY = "paperclip:board-collapsed";
+const DEFAULT_COLLAPSED = ["done", "cancelled"];
+
+function getCollapsedColumns(companyId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`${COLLAPSED_COLS_KEY}:${companyId}`);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Set(DEFAULT_COLLAPSED);
+}
+
+function saveCollapsedColumns(companyId: string, collapsed: Set<string>) {
+  localStorage.setItem(`${COLLAPSED_COLS_KEY}:${companyId}`, JSON.stringify([...collapsed]));
+}
+
+/* ── Keyboard Shortcuts Overlay ── */
+
+const SHORTCUTS = [
+  { key: "J", label: "Move focus down" },
+  { key: "K", label: "Move focus up" },
+  { key: "H", label: "Move focus left" },
+  { key: "L", label: "Move focus right" },
+  { key: "[", label: "Jump to previous column" },
+  { key: "]", label: "Jump to next column" },
+  { key: "Enter", label: "Open focused issue" },
+  { key: "N", label: "Create issue in column" },
+  { key: "S", label: "Toggle select focused card" },
+  { key: "X / Esc", label: "Clear focus & selection" },
+  { key: "?", label: "Toggle this overlay" },
+];
+
+function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-80 rounded-lg border border-border bg-card p-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Keyboard Shortcuts</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          {SHORTCUTS.map((s) => (
+            <div key={s.key} className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{s.label}</span>
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                {s.key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Bulk Action Bar ── */
+
+const BULK_STATUSES = ["backlog", "todo", "in_progress", "in_review", "blocked", "done", "cancelled"];
+
+function BulkActionBar({
+  count,
+  agents,
+  onBatchStatus,
+  onBatchAssignee,
+  onClear,
+}: {
+  count: number;
+  agents?: { id: string; name: string }[];
+  onBatchStatus: (status: string) => void;
+  onBatchAssignee: (agentId: string | null) => void;
+  onClear: () => void;
+}) {
+  const [showStatus, setShowStatus] = useState(false);
+  const [showAssignee, setShowAssignee] = useState(false);
+
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 shadow-xl">
+      <span className="text-sm font-medium tabular-nums">{count} selected</span>
+      <div className="h-4 w-px bg-border" />
+
+      <div className="relative">
+        <button
+          className="text-xs px-2.5 py-1 rounded-md bg-accent hover:bg-accent/80 transition-colors"
+          onClick={() => { setShowStatus((v) => !v); setShowAssignee(false); }}
+        >
+          Set Status
+        </button>
+        {showStatus && (
+          <div className="absolute bottom-full left-0 mb-1 w-40 rounded-md border border-border bg-card p-1 shadow-lg">
+            {BULK_STATUSES.map((s) => (
+              <button
+                key={s}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent/50"
+                onClick={() => { onBatchStatus(s); setShowStatus(false); }}
+              >
+                <StatusIcon status={s} />
+                <span>{statusLabel(s)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="relative">
+        <button
+          className="text-xs px-2.5 py-1 rounded-md bg-accent hover:bg-accent/80 transition-colors"
+          onClick={() => { setShowAssignee((v) => !v); setShowStatus(false); }}
+        >
+          Assign
+        </button>
+        {showAssignee && (
+          <div className="absolute bottom-full left-0 mb-1 w-48 rounded-md border border-border bg-card p-1 shadow-lg max-h-48 overflow-y-auto">
+            <button
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent/50"
+              onClick={() => { onBatchAssignee(null); setShowAssignee(false); }}
+            >
+              No assignee
+            </button>
+            {(agents ?? []).map((agent) => (
+              <button
+                key={agent.id}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent/50"
+                onClick={() => { onBatchAssignee(agent.id); setShowAssignee(false); }}
+              >
+                <Identity name={agent.name} size="sm" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="h-4 w-px bg-border" />
+      <button
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        onClick={onClear}
+      >
+        Clear
+      </button>
+    </div>
+  );
 }
 
 /* ── Component ── */
@@ -357,6 +524,258 @@ export function IssuesList({
     return defaults;
   };
 
+  const queryClient = useQueryClient();
+
+  const createIssueMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      issuesApi.create(selectedCompanyId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(selectedCompanyId!) });
+    },
+  });
+
+  const handleBoardCreateIssue = useCallback((data: Record<string, unknown>) => {
+    createIssueMutation.mutate(data);
+  }, [createIssueMutation]);
+
+  /* ── WIP Limits ── */
+
+  const [wipLimits, setWipLimits] = useState<WipLimits>(() =>
+    selectedCompanyId ? getWipLimits(selectedCompanyId) : {}
+  );
+
+  useEffect(() => {
+    if (selectedCompanyId) setWipLimits(getWipLimits(selectedCompanyId));
+  }, [selectedCompanyId]);
+
+  const handleWipLimitChange = useCallback((status: string, limit: number | null) => {
+    setWipLimits((prev) => {
+      const next = { ...prev };
+      if (limit === null) {
+        delete next[status];
+      } else {
+        next[status] = limit;
+      }
+      if (selectedCompanyId) saveWipLimits(selectedCompanyId, next);
+      return next;
+    });
+  }, [selectedCompanyId]);
+
+  /* ── Collapsed Columns ── */
+
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(() =>
+    selectedCompanyId ? getCollapsedColumns(selectedCompanyId) : new Set(DEFAULT_COLLAPSED)
+  );
+
+  useEffect(() => {
+    if (selectedCompanyId) setCollapsedColumns(getCollapsedColumns(selectedCompanyId));
+  }, [selectedCompanyId]);
+
+  const handleToggleColumn = useCallback((status: string) => {
+    setCollapsedColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      if (selectedCompanyId) saveCollapsedColumns(selectedCompanyId, next);
+      return next;
+    });
+  }, [selectedCompanyId]);
+
+  /* ── Selection state for bulk ops ── */
+
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const lastSelectedRef = useRef<string | null>(null);
+
+  const handleToggleCardSelect = useCallback((id: string, shiftKey: boolean) => {
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev);
+      if (shiftKey && lastSelectedRef.current && lastSelectedRef.current !== id) {
+        const allIds = filtered.map((i) => i.id);
+        const startIdx = allIds.indexOf(lastSelectedRef.current);
+        const endIdx = allIds.indexOf(id);
+        if (startIdx !== -1 && endIdx !== -1) {
+          const [lo, hi] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+          for (let i = lo; i <= hi; i++) next.add(allIds[i]);
+        } else {
+          next.has(id) ? next.delete(id) : next.add(id);
+        }
+      } else {
+        next.has(id) ? next.delete(id) : next.add(id);
+      }
+      lastSelectedRef.current = id;
+      return next;
+    });
+  }, [filtered]);
+
+  const handleBatchStatus = useCallback((status: string) => {
+    for (const id of selectedCardIds) {
+      onUpdateIssue(id, { status });
+    }
+    setSelectedCardIds(new Set());
+  }, [selectedCardIds, onUpdateIssue]);
+
+  const handleBatchAssignee = useCallback((agentId: string | null) => {
+    for (const id of selectedCardIds) {
+      onUpdateIssue(id, { assigneeAgentId: agentId, assigneeUserId: null });
+    }
+    setSelectedCardIds(new Set());
+  }, [selectedCardIds, onUpdateIssue]);
+
+  /* ── Keyboard Navigation ── */
+
+  const navigate = useNavigate();
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+
+  const boardColumnData = useMemo(() => {
+    if (viewState.viewMode !== "board") return [];
+    const cols: { status: string; issueIds: string[] }[] = [];
+    for (const status of ALL_BOARD_STATUSES) {
+      if (collapsedColumns.has(status)) continue;
+      const columnIssues = filtered.filter((i) => i.status === status);
+      if (ACTIVE_STATUSES.includes(status) || columnIssues.length > 0) {
+        cols.push({ status, issueIds: columnIssues.map((i) => i.id) });
+      }
+    }
+    return cols;
+  }, [filtered, viewState.viewMode, collapsedColumns]);
+
+  const handleBoardKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (viewState.viewMode !== "board") return;
+
+    const target = e.target as HTMLElement;
+    const isInputFocused = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+    if (isInputFocused) return;
+
+    const key = e.key.toLowerCase();
+
+    if (key === "?" && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      setShowShortcuts((v) => !v);
+      return;
+    }
+
+    if (key === "escape" || key === "x") {
+      e.preventDefault();
+      setFocusedCardId(null);
+      setSelectedCardIds(new Set());
+      return;
+    }
+
+    if (key === "s" && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      if (focusedCardId) {
+        handleToggleCardSelect(focusedCardId, e.shiftKey);
+      }
+      return;
+    }
+
+    if (!boardColumnData.length) return;
+
+    let currentCol = -1;
+    let currentRow = -1;
+    if (focusedCardId) {
+      for (let c = 0; c < boardColumnData.length; c++) {
+        const r = boardColumnData[c].issueIds.indexOf(focusedCardId);
+        if (r !== -1) {
+          currentCol = c;
+          currentRow = r;
+          break;
+        }
+      }
+    }
+
+    const moveFocus = (colIdx: number, rowIdx: number) => {
+      const col = boardColumnData[colIdx];
+      if (!col) return;
+      const clamped = Math.max(0, Math.min(rowIdx, col.issueIds.length - 1));
+      const id = col.issueIds[clamped];
+      if (id) {
+        setFocusedCardId(id);
+        requestAnimationFrame(() => {
+          const el = boardContainerRef.current?.querySelector(`[data-issue-id="${id}"]`);
+          el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
+      }
+    };
+
+    switch (key) {
+      case "j": {
+        e.preventDefault();
+        if (currentCol === -1) {
+          moveFocus(0, 0);
+        } else {
+          moveFocus(currentCol, currentRow + 1);
+        }
+        break;
+      }
+      case "k": {
+        e.preventDefault();
+        if (currentCol === -1) {
+          moveFocus(0, 0);
+        } else {
+          moveFocus(currentCol, currentRow - 1);
+        }
+        break;
+      }
+      case "h": {
+        e.preventDefault();
+        if (currentCol <= 0) {
+          if (currentCol === -1) moveFocus(0, 0);
+        } else {
+          moveFocus(currentCol - 1, currentRow);
+        }
+        break;
+      }
+      case "l": {
+        e.preventDefault();
+        if (currentCol === -1) {
+          moveFocus(0, 0);
+        } else if (currentCol < boardColumnData.length - 1) {
+          moveFocus(currentCol + 1, currentRow);
+        }
+        break;
+      }
+      case "[": {
+        e.preventDefault();
+        if (currentCol <= 0) {
+          moveFocus(0, 0);
+        } else {
+          moveFocus(currentCol - 1, 0);
+        }
+        break;
+      }
+      case "]": {
+        e.preventDefault();
+        if (currentCol === -1) {
+          moveFocus(0, 0);
+        } else if (currentCol < boardColumnData.length - 1) {
+          moveFocus(currentCol + 1, 0);
+        }
+        break;
+      }
+      case "enter": {
+        if (focusedCardId) {
+          e.preventDefault();
+          const issue = filtered.find((i) => i.id === focusedCardId);
+          if (issue) {
+            navigate(`/issues/${issue.identifier ?? issue.id}`);
+          }
+        }
+        break;
+      }
+      case "n": {
+        e.preventDefault();
+        const defaults: Record<string, string> = {};
+        if (projectId) defaults.projectId = projectId;
+        if (currentCol >= 0) defaults.status = boardColumnData[currentCol].status;
+        openNewIssue(defaults);
+        break;
+      }
+    }
+  }, [viewState.viewMode, boardColumnData, focusedCardId, filtered, navigate, projectId, openNewIssue, handleToggleCardSelect]);
+
   const assignIssue = (issueId: string, assigneeAgentId: string | null, assigneeUserId: string | null = null) => {
     onUpdateIssue(issueId, { assigneeAgentId, assigneeUserId });
     setAssigneePickerIssueId(null);
@@ -364,7 +783,8 @@ export function IssuesList({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={boardContainerRef} onKeyDown={handleBoardKeyDown} tabIndex={-1}>
+      {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -379,6 +799,54 @@ export function IssuesList({
         </div>
 
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          {/* Swimlane picker (board view only) */}
+          {viewState.viewMode === "board" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    "p-1.5 transition-colors rounded-md hover:bg-accent/50",
+                    viewState.swimlaneBy !== "none" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground hover:text-foreground",
+                  )}
+                  title="Swimlanes"
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-40 p-0">
+                <div className="p-2 space-y-0.5">
+                  {([
+                    ["none", "None"],
+                    ["assignee", "Assignee"],
+                    ["project", "Project"],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={`flex items-center justify-between w-full px-2 py-1.5 text-sm rounded-sm ${
+                        viewState.swimlaneBy === value ? "bg-accent/50 text-foreground" : "hover:bg-accent/50 text-muted-foreground"
+                      }`}
+                      onClick={() => updateView({ swimlaneBy: value })}
+                    >
+                      <span>{label}</span>
+                      {viewState.swimlaneBy === value && <Check className="h-3.5 w-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Shortcuts toggle (board view only) */}
+          {viewState.viewMode === "board" && (
+            <button
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/50"
+              onClick={() => setShowShortcuts((v) => !v)}
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+            </button>
+          )}
+
           {/* View mode toggle */}
           <div className="flex items-center border border-border rounded-md overflow-hidden mr-1">
             <button
@@ -390,7 +858,11 @@ export function IssuesList({
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => updateView({ viewMode: "board" })}
+              onClick={() => {
+                updateView({ viewMode: "board" });
+                setFocusedCardId(null);
+                setSelectedCardIds(new Set());
+              }}
               title="Board view"
             >
               <Columns3 className="h-3.5 w-3.5" />
@@ -659,12 +1131,35 @@ export function IssuesList({
       )}
 
       {viewState.viewMode === "board" ? (
-        <KanbanBoard
-          issues={filtered}
-          agents={agents}
-          liveIssueIds={liveIssueIds}
-          onUpdateIssue={onUpdateIssue}
-        />
+        <>
+          <BoardMetrics issues={filtered} companyId={selectedCompanyId ?? undefined} />
+          <KanbanBoard
+            issues={filtered}
+            agents={agents}
+            projects={projects}
+            liveIssueIds={liveIssueIds}
+            onUpdateIssue={onUpdateIssue}
+            onCreateIssue={handleBoardCreateIssue}
+            projectId={projectId}
+            focusedCardId={focusedCardId}
+            wipLimits={wipLimits}
+            onWipLimitChange={handleWipLimitChange}
+            swimlaneBy={viewState.swimlaneBy}
+            selectedCardIds={selectedCardIds}
+            onToggleCardSelect={handleToggleCardSelect}
+            collapsedColumns={collapsedColumns}
+            onToggleColumn={handleToggleColumn}
+          />
+          {selectedCardIds.size > 0 && (
+            <BulkActionBar
+              count={selectedCardIds.size}
+              agents={agents}
+              onBatchStatus={handleBatchStatus}
+              onBatchAssignee={handleBatchAssignee}
+              onClear={() => setSelectedCardIds(new Set())}
+            />
+          )}
+        </>
       ) : (
         groupedContent.map((group) => (
           <Collapsible

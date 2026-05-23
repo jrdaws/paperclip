@@ -20,5 +20,15 @@ export function buildHttpConfig(v: CreateConfigValues): Record<string, unknown> 
   if (Object.keys(headers).length > 0) {
     ac.headers = headers;
   }
+
+  if (v.payloadTemplateJson?.trim()) {
+    try {
+      const parsed = JSON.parse(v.payloadTemplateJson);
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        ac.payloadTemplate = parsed;
+      }
+    } catch { /* invalid JSON — skip */ }
+  }
+
   return ac;
 }

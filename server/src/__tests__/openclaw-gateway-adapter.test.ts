@@ -408,6 +408,7 @@ describe("openclaw gateway adapter execute", () => {
             headers: {
               "x-openclaw-token": "gateway-token",
             },
+            sessionKeyStrategy: "issue",
             payloadTemplate: {
               message: "wake now",
             },
@@ -457,7 +458,43 @@ describe("openclaw gateway adapter execute", () => {
       expect(String(payload?.message ?? "")).toContain("PAPERCLIP_RUN_ID=run-123");
       expect(String(payload?.message ?? "")).toContain("PAPERCLIP_TASK_ID=task-123");
 
+      expect(payload?.paperclip).toBeUndefined();
+
       expect(logs.some((entry) => entry.includes("[openclaw-gateway:event] run=run-123 stream=assistant"))).toBe(true);
+    } finally {
+      await gateway.close();
+    }
+  });
+
+  it("includes company name and issue prefix in env, wake text, and paperclip payload", async () => {
+    const gateway = await createMockGatewayServer();
+
+    try {
+      await execute(
+        buildContext(
+          {
+            url: gateway.url,
+            headers: { "x-openclaw-token": "gateway-token" },
+            waitTimeoutMs: 2000,
+          },
+          {
+            agent: {
+              id: "agent-123",
+              companyId: "company-123",
+              name: "CEO",
+              adapterType: "openclaw_gateway",
+              adapterConfig: {},
+              companyName: "Secret Second Browser",
+              companyIssuePrefix: "SEC",
+            },
+          },
+        ),
+      );
+
+      const payload = gateway.getAgentPayload();
+      expect(String(payload?.message ?? "")).toContain("PAPERCLIP_COMPANY_NAME=Secret Second Browser");
+      expect(String(payload?.message ?? "")).toContain("PAPERCLIP_COMPANY_ISSUE_PREFIX=SEC");
+      expect(payload?.paperclip).toBeUndefined();
     } finally {
       await gateway.close();
     }

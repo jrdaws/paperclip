@@ -1,0 +1,33 @@
+{
+  "name": "@paperclipai/plugin-mission-control",
+  "version": "1.0.0",
+  "description": "Exposes Mission Control's 28 tools to Paperclip agents with cost tracking and metrics",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "workspace:*",
+    "@paperclipai/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "typescript": "^5.7.3"
+  }
+}

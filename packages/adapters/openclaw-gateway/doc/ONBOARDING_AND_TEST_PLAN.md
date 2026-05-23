@@ -41,11 +41,14 @@ Recommended fields:
 {
   "paperclipApiUrl": "http://host.docker.internal:3100",
   "waitTimeoutMs": 120000,
-  "sessionKeyStrategy": "issue",
+  "sessionKeyStrategy": "fixed",
+  "sessionKey": "paperclip",
   "role": "operator",
   "scopes": ["operator.admin"]
 }
 ```
+
+Use `"sessionKeyStrategy": "issue"` when you want a separate OpenClaw transcript per Paperclip issue instead of one long-running chat.
 
 Security/pairing defaults:
 - `disableDeviceAuth`: default false

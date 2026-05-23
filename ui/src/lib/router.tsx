@@ -5,6 +5,7 @@ import { useCompany } from "@/context/CompanyContext";
 import {
   applyCompanyPrefix,
   extractCompanyPrefixFromPath,
+  isReservedUrlSegment,
   normalizeCompanyPrefix,
 } from "@/lib/company-routes";
 
@@ -23,17 +24,29 @@ function resolveTo(to: To, companyPrefix: string | null): To {
   return to;
 }
 
+/** Resolves the company segment for Link/Navigate/useNavigate — reserved words + loaded `companies` only (never trusts ambiguous :companyPrefix alone). */
 function useActiveCompanyPrefix(): string | null {
-  const { selectedCompany } = useCompany();
+  const { selectedCompany, companies } = useCompany();
   const params = RouterDom.useParams<{ companyPrefix?: string }>();
   const location = RouterDom.useLocation();
 
-  if (params.companyPrefix) {
-    return normalizeCompanyPrefix(params.companyPrefix);
+  const matchesLoadedCompany = React.useCallback(
+    (normalizedPrefix: string) =>
+      companies.some((c) => normalizeCompanyPrefix(c.issuePrefix) === normalizedPrefix),
+    [companies],
+  );
+
+  if (params.companyPrefix && !isReservedUrlSegment(params.companyPrefix)) {
+    const normalized = normalizeCompanyPrefix(params.companyPrefix);
+    if (matchesLoadedCompany(normalized)) {
+      return normalized;
+    }
   }
 
   const pathPrefix = extractCompanyPrefixFromPath(location.pathname);
-  if (pathPrefix) return pathPrefix;
+  if (pathPrefix && matchesLoadedCompany(pathPrefix)) {
+    return pathPrefix;
+  }
 
   return selectedCompany ? normalizeCompanyPrefix(selectedCompany.issuePrefix) : null;
 }

@@ -32,20 +32,18 @@ Gateway connect identity fields:
 Request behavior fields:
 - payloadTemplate (object, optional): additional fields merged into gateway agent params
 - workspaceRuntime (object, optional): desired runtime service intents; Paperclip forwards these in a standardized paperclip.workspaceRuntime block for remote execution environments
-- timeoutSec (number, optional): adapter timeout in seconds (default 120)
-- waitTimeoutMs (number, optional): agent.wait timeout override (default timeoutSec * 1000)
+- timeoutSec (number, optional): adapter timeout in seconds (default 900 — long enough for typical Next lint/tsc/test/build)
+- waitTimeoutMs (number, optional): agent.wait timeout override (default 900000 ms unless timeoutSec drives it)
 - autoPairOnFirstConnect (boolean, optional): on first "pairing required", attempt device.pair.list/device.pair.approve via shared auth, then retry once (default true)
 - paperclipApiUrl (string, optional): absolute Paperclip base URL advertised in wake text
 
 Session routing fields:
-- sessionKeyStrategy (string, optional): issue (default), fixed, or run
-- sessionKey (string, optional): fixed session key when strategy=fixed (default paperclip)
+- sessionKeyStrategy (string, optional): fixed (default), issue, or run
+- sessionKey (string, optional): fixed session key when strategy=fixed. Legacy default was \`paperclip\` (one shared thread). **New agents:** Paperclip auto-seeds \`paperclip:agent:<agentId>\` when strategy is \`fixed\` and the key is empty or still \`paperclip\`, so each agent gets a distinct OpenClaw thread unless you set a custom key (e.g. one shared \`my-team\` for multiple agents). Use **issue** when every Paperclip issue must have an isolated OpenClaw session (UUID-heavy in OpenClaw UI until display-metadata ships).
 
-Standard outbound payload additions:
-- paperclip (object): standardized Paperclip context added to every gateway agent request
-- paperclip.workspace (object, optional): resolved execution workspace for this run
-- paperclip.workspaces (array, optional): additional workspace hints Paperclip exposed to the run
-- paperclip.workspaceRuntime (object, optional): normalized runtime service intent config for the workspace
+Context to OpenClaw (gateway "agent" method params are schema-validated — no root paperclip property):
+- message: includes Paperclip wake text with PAPERCLIP_* env lines (company id/name/issue prefix, API URL, task/issue ids, etc.).
+- payloadTemplate: optional fields merge into params except paperclip, which is stripped if present (adapter UI may store nested config there).
 
 Standard result metadata supported:
 - meta.runtimeServices (array, optional): normalized adapter-managed runtime service reports

@@ -76,6 +76,7 @@ Operational fields:
 
 Notes:
 - Runs are executed with: agent -p --output-format stream-json ...
+- The Paperclip **server** process must be able to spawn the agent CLI (same PATH as the shell that starts pnpm dev, not only the Cursor IDE terminal). Paperclip prepends common install dirs (e.g. ~/.local/bin, ~/.cursor/bin, Homebrew prefixes) when resolving the command; override **command** with an absolute path if yours lives elsewhere.
 - Prompts are piped to Cursor via stdin.
 - Sessions are resumed with --resume when stored session cwd matches current cwd.
 - Paperclip auto-injects local skills into "~/.cursor/skills" when missing, so Cursor can discover "$paperclip" and related skills on local runs.

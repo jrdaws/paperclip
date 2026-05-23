@@ -35,6 +35,7 @@ Additional context variables are set when the wake has a specific trigger:
 | `PAPERCLIP_WAKE_COMMENT_ID` | Specific comment that triggered this wake |
 | `PAPERCLIP_APPROVAL_ID` | Approval that was resolved |
 | `PAPERCLIP_APPROVAL_STATUS` | Approval decision (`approved`, `rejected`) |
+| `PAPERCLIP_LINKED_ISSUE_IDS` | Comma-separated issue IDs linked to the resolved approval |
 
 ## Session Persistence
 

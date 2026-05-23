@@ -58,4 +58,46 @@ describe("agent runtime label detection", () => {
     expect(isLangGraphAgent(agent as never)).toBe(true);
     expect(runtimeLabelForAgent(agent as never, "HTTP")).toBe("LangGraph (HTTP)");
   });
+
+  it("detects LangGraph via runtime profile even when URL is orchestrator", () => {
+    const agent = {
+      adapterType: "http",
+      capabilities: null,
+      adapterConfig: {
+        url: "http://127.0.0.1:8080/webhook",
+        runtimeProfile: "http+langgraph",
+        headers: { "x-agent-runtime": "LangGraph" },
+      },
+    };
+    expect(isLangGraphAgent(agent as never)).toBe(true);
+    expect(runtimeLabelForAgent(agent as never, "HTTP")).toBe("LangGraph (HTTP)");
+  });
+
+  it("detects CrewAI via runtime profile even when URL is orchestrator", () => {
+    const agent = {
+      adapterType: "http",
+      capabilities: null,
+      adapterConfig: {
+        url: "http://127.0.0.1:8080/webhook",
+        runtimeProfile: "http+crewai",
+        headers: { "x-agent-runtime": "CrewAI" },
+      },
+    };
+    expect(isCrewAiAgent(agent as never)).toBe(true);
+    expect(runtimeLabelForAgent(agent as never, "HTTP")).toBe("CrewAI (HTTP)");
+  });
+
+  it("falls back to generic label when orchestrator URL used with custom-http profile", () => {
+    const agent = {
+      adapterType: "http",
+      capabilities: null,
+      adapterConfig: {
+        url: "http://127.0.0.1:8080/webhook",
+        runtimeProfile: "custom-http",
+      },
+    };
+    expect(isCrewAiAgent(agent as never)).toBe(false);
+    expect(isLangGraphAgent(agent as never)).toBe(false);
+    expect(runtimeLabelForAgent(agent as never, "HTTP")).toBe("HTTP");
+  });
 });

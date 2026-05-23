@@ -40,7 +40,8 @@ export const help: Record<string, string> = {
   runtimeServicesJson: "Optional workspace runtime service definitions. Use this for shared app servers, workers, or other long-lived companion processes attached to the workspace.",
   maxTurnsPerRun: "Maximum number of agentic turns (tool calls) per heartbeat run.",
   command: "The command to execute (e.g. node, python).",
-  localCommand: "Override the path to the CLI command you want the adapter to call (e.g. /usr/local/bin/claude, codex, opencode).",
+  localCommand:
+    "CLI name or absolute path. Cursor uses the Cursor Agent CLI (default: agent). The Paperclip server must find it on PATH — if the env test fails, paste the output of `which agent` from a shell where it works, or set CURSOR_API_KEY / run agent login for auth.",
   args: "Command-line arguments, comma-separated.",
   extraArgs: "Extra CLI arguments for local adapters, comma-separated.",
   envVars: "Environment variables injected into the adapter process. Use plain values or secret references.",

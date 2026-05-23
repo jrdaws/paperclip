@@ -40,7 +40,11 @@ import {
   help,
   adapterLabels,
 } from "./agent-config-primitives";
-import { defaultCreateValues } from "./agent-config-defaults";
+import {
+  defaultCreateValues,
+  OPENCLAW_GATEWAY_EDIT_DEFAULTS,
+  openclawGatewayCreatePreset,
+} from "./agent-config-defaults";
 import { getUIAdapter } from "../adapters";
 import { ClaudeLocalAdvancedFields } from "../adapters/claude-local/config-fields";
 import { MarkdownEditor } from "./MarkdownEditor";
@@ -573,6 +577,8 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       nextValues.httpRuntimeProfile = "http+crewai";
                       nextValues.httpRuntimeHeader = "CrewAI";
                       nextValues.url = "http://127.0.0.1:8000/webhook";
+                    } else if (t === "openclaw_gateway") {
+                      Object.assign(nextValues, openclawGatewayCreatePreset());
                     }
                     set!(nextValues);
                   } else {
@@ -581,33 +587,36 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     setOverlay((prev) => ({
                       ...prev,
                       adapterType: t,
-                      adapterConfig: {
-                        model:
-                          t === "codex_local"
-                            ? DEFAULT_CODEX_LOCAL_MODEL
-                            : t === "gemini_local"
-                              ? DEFAULT_GEMINI_LOCAL_MODEL
-                            : t === "cursor"
-                              ? DEFAULT_CURSOR_LOCAL_MODEL
-                            : "",
-                        effort: "",
-                        modelReasoningEffort: "",
-                        variant: "",
-                        mode: "",
-                        ...(t === "codex_local"
-                          ? {
-                              dangerouslyBypassApprovalsAndSandbox:
-                                DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
-                            }
-                          : {}),
-                        ...(t === "http"
-                          ? {
-                              url: "http://127.0.0.1:8000/webhook",
-                              runtimeProfile: "http+crewai",
-                              headers: { "x-agent-runtime": "CrewAI" },
-                            }
-                          : {}),
-                      },
+                      adapterConfig:
+                        t === "openclaw_gateway"
+                          ? { ...OPENCLAW_GATEWAY_EDIT_DEFAULTS }
+                          : {
+                              model:
+                                t === "codex_local"
+                                  ? DEFAULT_CODEX_LOCAL_MODEL
+                                  : t === "gemini_local"
+                                    ? DEFAULT_GEMINI_LOCAL_MODEL
+                                    : t === "cursor"
+                                      ? DEFAULT_CURSOR_LOCAL_MODEL
+                                    : "",
+                              effort: "",
+                              modelReasoningEffort: "",
+                              variant: "",
+                              mode: "",
+                              ...(t === "codex_local"
+                                ? {
+                                    dangerouslyBypassApprovalsAndSandbox:
+                                      DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
+                                  }
+                                : {}),
+                              ...(t === "http"
+                                ? {
+                                    url: "http://127.0.0.1:8000/webhook",
+                                    runtimeProfile: "http+crewai",
+                                    headers: { "x-agent-runtime": "CrewAI" },
+                                  }
+                                : {}),
+                            },
                     }));
                   }
                 }}
@@ -1003,6 +1012,7 @@ const ENABLED_ADAPTER_TYPES = new Set([
   "pi_local",
   "cursor",
   "http",
+  "openclaw_gateway",
 ]);
 
 /** Display list includes all real adapter types plus UI-only coming-soon entries. */

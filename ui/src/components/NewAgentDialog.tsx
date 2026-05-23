@@ -5,6 +5,7 @@ import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
 import { agentsApi } from "../api/agents";
 import { queryKeys } from "../lib/queryKeys";
+import { AGENT_TEMPLATES, type AgentTemplate } from "../pages/NewAgent";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   MousePointer2,
   Sparkles,
   Terminal,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
@@ -97,6 +99,7 @@ export function NewAgentDialog() {
   const { selectedCompanyId } = useCompany();
   const navigate = useNavigate();
   const [showAdvancedCards, setShowAdvancedCards] = useState(false);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
 
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
@@ -104,6 +107,18 @@ export function NewAgentDialog() {
     enabled: !!selectedCompanyId && newAgentOpen,
   });
 
+  const { data: liveTemplates } = useQuery<{ templates: (AgentTemplate & { usageCount?: number })[] }>({
+    queryKey: ["agent-templates-sorted"],
+    queryFn: async () => {
+      const resp = await fetch("/api/agent-templates?sort=usage");
+      if (!resp.ok) throw new Error("template fetch failed");
+      return resp.json();
+    },
+    enabled: newAgentOpen,
+    staleTime: 30_000,
+  });
+
+  const templates = liveTemplates?.templates ?? AGENT_TEMPLATES;
   const ceoAgent = (agents ?? []).find((a) => a.role === "ceo");
 
   function handleAskCeo() {
@@ -137,6 +152,7 @@ export function NewAgentDialog() {
       onOpenChange={(open) => {
         if (!open) {
           setShowAdvancedCards(false);
+          setShowAllTemplates(false);
           closeNewAgent();
         }
       }}
@@ -154,6 +170,7 @@ export function NewAgentDialog() {
             className="text-muted-foreground"
             onClick={() => {
               setShowAdvancedCards(false);
+              setShowAllTemplates(false);
               closeNewAgent();
             }}
           >
@@ -180,6 +197,42 @@ export function NewAgentDialog() {
                 <Bot className="h-4 w-4 mr-2" />
                 Ask the CEO to create a new agent
               </Button>
+
+              {/* Quick Templates */}
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium text-center">Quick templates</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(showAllTemplates ? templates : templates.slice(0, 6)).map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      className="flex flex-col items-start gap-0.5 rounded-md border border-border p-2.5 text-xs transition-colors hover:bg-accent/50"
+                      onClick={() => {
+                        closeNewAgent();
+                        setShowAllTemplates(false);
+                        navigate(
+                          `/agents/new?adapterType=${encodeURIComponent(tpl.adapterType)}&template=${encodeURIComponent(tpl.id)}`,
+                        );
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium">{tpl.name}</span>
+                      </div>
+                      <span className="text-muted-foreground text-[10px] leading-tight">{tpl.description}</span>
+                    </button>
+                  ))}
+                </div>
+                {!showAllTemplates && templates.length > 6 && (
+                  <div className="text-center">
+                    <button
+                      className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setShowAllTemplates(true)}
+                    >
+                      View all {templates.length} templates
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Advanced link */}
               <div className="text-center">

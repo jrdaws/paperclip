@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation, useSearchParams } from "@/lib/router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { issuesApi } from "../api/issues";
@@ -85,12 +85,54 @@ export function Issues() {
   });
 
   const updateIssue = useMutation({
+    mutationKey: ["updateIssue", selectedCompanyId],
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       issuesApi.update(id, data),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(selectedCompanyId!) });
     },
   });
+
+  const pendingMutations = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; data: Record<string, unknown> }>(),
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const { timer } of pendingMutations.current.values()) clearTimeout(timer);
+    };
+  }, []);
+
+  const handleUpdateIssue = useCallback(
+    (id: string, data: Record<string, unknown>) => {
+      const qk = [
+        ...queryKeys.issues.list(selectedCompanyId!),
+        "participant-agent",
+        participantAgentId ?? "__all__",
+      ];
+
+      queryClient.setQueryData(qk, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((issue: Record<string, unknown>) =>
+          issue.id === id ? { ...issue, ...data } : issue,
+        );
+      });
+
+      const pending = pendingMutations.current.get(id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        data = { ...pending.data, ...data };
+      }
+
+      const timer = setTimeout(() => {
+        pendingMutations.current.delete(id);
+        updateIssue.mutate({ id, data });
+      }, 250);
+
+      pendingMutations.current.set(id, { timer, data });
+    },
+    [selectedCompanyId, participantAgentId, queryClient, updateIssue],
+  );
 
   if (!selectedCompanyId) {
     return <EmptyState icon={CircleDot} message="Select a company to view issues." />;
@@ -109,7 +151,7 @@ export function Issues() {
       initialAssignees={searchParams.get("assignee") ? [searchParams.get("assignee")!] : undefined}
       initialSearch={initialSearch}
       onSearchChange={handleSearchChange}
-      onUpdateIssue={(id, data) => updateIssue.mutate({ id, data })}
+      onUpdateIssue={handleUpdateIssue}
       searchFilters={participantAgentId ? { participantAgentId } : undefined}
     />
   );

@@ -859,23 +859,26 @@ export function OnboardingWizard() {
                             label: "OpenClaw Gateway",
                             icon: Bot,
                             desc: "Invoke OpenClaw via gateway protocol",
-                            comingSoon: true,
-                            disabledLabel: "Configure OpenClaw within the App"
                           }
-                        ].map((opt) => (
+                        ].map((opt) => {
+                          const comingSoon = Boolean(
+                            "comingSoon" in opt &&
+                              (opt as { comingSoon?: boolean }).comingSoon,
+                          );
+                          return (
                           <button
                             key={opt.value}
-                            disabled={!!opt.comingSoon}
+                            disabled={comingSoon}
                             className={cn(
                               "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
-                              opt.comingSoon
+                              comingSoon
                                 ? "border-border opacity-40 cursor-not-allowed"
                                 : adapterType === opt.value
                                 ? "border-foreground bg-accent"
                                 : "border-border hover:bg-accent/50"
                             )}
                             onClick={() => {
-                              if (opt.comingSoon) return;
+                              if (comingSoon) return;
                               const nextType = opt.value as AdapterType;
                               setAdapterType(nextType);
                               if (nextType === "gemini_local" && !model) {
@@ -898,13 +901,14 @@ export function OnboardingWizard() {
                             <opt.icon className="h-4 w-4" />
                             <span className="font-medium">{opt.label}</span>
                             <span className="text-muted-foreground text-[10px]">
-                              {opt.comingSoon
+                              {comingSoon
                                 ? (opt as { disabledLabel?: string })
                                     .disabledLabel ?? "Coming soon"
                                 : opt.desc}
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1213,6 +1217,13 @@ export function OnboardingWizard() {
                         starter task, wake the agent, and open the issue.
                       </p>
                     </div>
+                  </div>
+                  <div className="rounded-md border border-border bg-muted/30 px-3 py-2.5 text-[11px] text-muted-foreground leading-relaxed">
+                    <span className="font-medium text-foreground">After launch:</span> set each product&apos;s{" "}
+                    <strong>Demo site URL</strong> under{" "}
+                    <span className="text-foreground/90">Project → Configuration → Product &amp; demo links</span>.
+                    The <strong>Apps</strong> page is the canonical launchpad — keep links there so demo URLs never
+                    contradict other docs.
                   </div>
                   <div className="border border-border divide-y divide-border">
                     <div className="flex items-center gap-3 px-3 py-2.5">

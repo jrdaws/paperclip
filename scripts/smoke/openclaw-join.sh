@@ -202,7 +202,8 @@ JOIN_PAYLOAD="$(jq -nc \
     agentDefaultsPayload: {
       url: $url,
       headers: { "x-openclaw-token": $token },
-      sessionKeyStrategy: "issue",
+      sessionKeyStrategy: "fixed",
+      sessionKey: "paperclip",
       waitTimeoutMs: 120000
     }
   }')"

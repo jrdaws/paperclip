@@ -147,7 +147,9 @@ export async function testEnvironment(
     }
   }
 
-  if (url && runtimeProfile === "http+crewai") {
+  if (url && (runtimeProfile === "http+crewai" || runtimeProfile === "http+langgraph")) {
+    const frameworkLabel = runtimeProfile === "http+crewai" ? "CrewAI" : "LangGraph";
+    const codePrefix = runtimeProfile === "http+crewai" ? "http_crewai" : "http_langgraph";
     const healthUrl = `${url.protocol}//${url.host}/health`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
@@ -158,24 +160,24 @@ export async function testEnvironment(
       });
       if (response.ok) {
         checks.push({
-          code: "http_crewai_health_probe_ok",
+          code: `${codePrefix}_health_probe_ok`,
           level: "info",
-          message: `CrewAI health probe succeeded at ${healthUrl}`,
+          message: `${frameworkLabel} health probe succeeded at ${healthUrl}`,
         });
       } else {
         checks.push({
-          code: "http_crewai_health_probe_status",
+          code: `${codePrefix}_health_probe_status`,
           level: "warn",
-          message: `CrewAI health probe returned HTTP ${response.status}`,
-          hint: "Verify your CrewAI webhook runtime exposes /health.",
+          message: `${frameworkLabel} health probe returned HTTP ${response.status}`,
+          hint: `Verify your ${frameworkLabel} webhook runtime exposes /health.`,
         });
       }
     } catch (err) {
       checks.push({
-        code: "http_crewai_health_probe_failed",
+        code: `${codePrefix}_health_probe_failed`,
         level: "warn",
-        message: err instanceof Error ? err.message : "CrewAI health probe failed",
-        hint: "Start the CrewAI webhook runtime before invoking heartbeat.",
+        message: err instanceof Error ? err.message : `${frameworkLabel} health probe failed`,
+        hint: `Start the ${frameworkLabel} webhook runtime before invoking heartbeat.`,
       });
     } finally {
       clearTimeout(timeout);

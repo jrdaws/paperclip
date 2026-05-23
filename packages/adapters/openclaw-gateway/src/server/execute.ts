@@ -121,7 +121,7 @@ function parseBoolean(value: unknown, fallback = false): boolean {
 }
 
 function normalizeSessionKeyStrategy(value: unknown): SessionKeyStrategy {
-  const normalized = asString(value, "issue").trim().toLowerCase();
+  const normalized = asString(value, "fixed").trim().toLowerCase();
   if (normalized === "fixed" || normalized === "run") return normalized;
   return "issue";
 }
@@ -341,6 +341,8 @@ function buildWakeText(payload: WakePayload, paperclipEnv: Record<string, string
     "PAPERCLIP_RUN_ID",
     "PAPERCLIP_AGENT_ID",
     "PAPERCLIP_COMPANY_ID",
+    "PAPERCLIP_COMPANY_NAME",
+    "PAPERCLIP_COMPANY_ISSUE_PREFIX",
     "PAPERCLIP_API_URL",
     "PAPERCLIP_TASK_ID",
     "PAPERCLIP_WAKE_REASON",
@@ -413,58 +415,6 @@ function buildWakeText(payload: WakePayload, paperclipEnv: Record<string, string
 function appendWakeText(baseText: string, wakeText: string): string {
   const trimmedBase = baseText.trim();
   return trimmedBase.length > 0 ? `${trimmedBase}\n\n${wakeText}` : wakeText;
-}
-
-function buildStandardPaperclipPayload(
-  ctx: AdapterExecutionContext,
-  wakePayload: WakePayload,
-  paperclipEnv: Record<string, string>,
-  payloadTemplate: Record<string, unknown>,
-): Record<string, unknown> {
-  const templatePaperclip = parseObject(payloadTemplate.paperclip);
-  const workspace = asRecord(ctx.context.paperclipWorkspace);
-  const workspaces = Array.isArray(ctx.context.paperclipWorkspaces)
-    ? ctx.context.paperclipWorkspaces.filter((entry): entry is Record<string, unknown> => Boolean(asRecord(entry)))
-    : [];
-  const configuredWorkspaceRuntime = parseObject(ctx.config.workspaceRuntime);
-  const runtimeServiceIntents = Array.isArray(ctx.context.paperclipRuntimeServiceIntents)
-    ? ctx.context.paperclipRuntimeServiceIntents.filter(
-        (entry): entry is Record<string, unknown> => Boolean(asRecord(entry)),
-      )
-    : [];
-
-  const standardPaperclip: Record<string, unknown> = {
-    runId: ctx.runId,
-    companyId: ctx.agent.companyId,
-    agentId: ctx.agent.id,
-    agentName: ctx.agent.name,
-    taskId: wakePayload.taskId,
-    issueId: wakePayload.issueId,
-    issueIds: wakePayload.issueIds,
-    wakeReason: wakePayload.wakeReason,
-    wakeCommentId: wakePayload.wakeCommentId,
-    approvalId: wakePayload.approvalId,
-    approvalStatus: wakePayload.approvalStatus,
-    apiUrl: paperclipEnv.PAPERCLIP_API_URL ?? null,
-  };
-
-  if (workspace) {
-    standardPaperclip.workspace = workspace;
-  }
-  if (workspaces.length > 0) {
-    standardPaperclip.workspaces = workspaces;
-  }
-  if (runtimeServiceIntents.length > 0 || Object.keys(configuredWorkspaceRuntime).length > 0) {
-    standardPaperclip.workspaceRuntime = {
-      ...configuredWorkspaceRuntime,
-      ...(runtimeServiceIntents.length > 0 ? { services: runtimeServiceIntents } : {}),
-    };
-  }
-
-  return {
-    ...templatePaperclip,
-    ...standardPaperclip,
-  };
 }
 
 function normalizeUrl(input: string): URL | null {
@@ -1026,7 +976,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
   }
 
-  const timeoutSec = Math.max(0, Math.floor(asNumber(ctx.config.timeoutSec, 120)));
+  const timeoutSec = Math.max(0, Math.floor(asNumber(ctx.config.timeoutSec, 900)));
   const timeoutMs = timeoutSec > 0 ? timeoutSec * 1000 : 0;
   const connectTimeoutMs = timeoutMs > 0 ? Math.min(timeoutMs, 15_000) : 10_000;
   const waitTimeoutMs = parseOptionalPositiveInteger(ctx.config.waitTimeoutMs) ?? (timeoutMs > 0 ? timeoutMs : 30_000);
@@ -1066,7 +1016,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const templateMessage = nonEmpty(payloadTemplate.message) ?? nonEmpty(payloadTemplate.text);
   const message = templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText;
-  const paperclipPayload = buildStandardPaperclipPayload(ctx, wakePayload, paperclipEnv, payloadTemplate);
 
   const agentParams: Record<string, unknown> = {
     ...payloadTemplate,
@@ -1075,6 +1024,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     idempotencyKey: ctx.runId,
   };
   delete agentParams.text;
+  // OpenClaw gateway validates agent params strictly — no root `paperclip` key. Context is only in
+  // `message` (wake text) and PAPERCLIP_* lines. Strip if present from payloadTemplate merge.
+  delete agentParams.paperclip;
 
   const configuredAgentId = nonEmpty(ctx.config.agentId);
   if (configuredAgentId && !nonEmpty(agentParams.agentId)) {

@@ -56,6 +56,10 @@ export interface Project {
   goals: ProjectGoalRef[];
   name: string;
   description: string | null;
+  /** Public demo / marketing / staging site (https). */
+  demoSiteUrl: string | null;
+  /** Optional second link (e.g. app build, admin, TestFlight). */
+  demoAppUrl: string | null;
   status: ProjectStatus;
   leadAgentId: string | null;
   targetDate: string | null;

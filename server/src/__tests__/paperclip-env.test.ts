@@ -55,4 +55,18 @@ describe("buildPaperclipEnv", () => {
 
     expect(env.PAPERCLIP_API_URL).toBe("http://[::1]:3101");
   });
+
+  it("includes company display fields when provided", () => {
+    process.env.PAPERCLIP_API_URL = "http://localhost:3100";
+
+    const env = buildPaperclipEnv({
+      id: "agent-1",
+      companyId: "company-1",
+      companyName: "Secret Second Browser",
+      companyIssuePrefix: "SEC",
+    });
+
+    expect(env.PAPERCLIP_COMPANY_NAME).toBe("Secret Second Browser");
+    expect(env.PAPERCLIP_COMPANY_ISSUE_PREFIX).toBe("SEC");
+  });
 });

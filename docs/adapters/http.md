@@ -86,15 +86,32 @@ The external agent uses `PAPERCLIP_API_URL` and an API key to call back to Paper
 4. Click `Invoke` in the agent detail to trigger a heartbeat.
 5. Verify run logs for successful HTTP invocation and callback.
 
-## Local operator preset
+## How to test LangGraph from the dashboard
 
-For local bridge setups, use:
+1. Create or edit an agent with adapter type `http`.
+2. Set URL to `http://127.0.0.1:8001/webhook` + runtime profile `http+langgraph` (header defaults to `x-agent-runtime: LangGraph`).
+3. Save and go to `Agents` page: label should show `LangGraph (HTTP)`.
+4. Click `Invoke` in the agent detail to trigger a heartbeat.
+5. Verify run logs for successful HTTP invocation and callback.
+
+## Local operator presets
+
+For local bridge setups:
+
+### CrewAI bridge
 
 - `CREWAI_WEBHOOK_URL=http://127.0.0.1:8000/webhook`
-
-and run:
 
 ```bash
 cd server
 CREWAI_WEBHOOK_URL="http://127.0.0.1:8000/webhook" pnpm phase1:crewai-smoke
+```
+
+### LangGraph bridge
+
+- `LANGGRAPH_WEBHOOK_URL=http://127.0.0.1:8001/webhook`
+
+```bash
+cd server
+LANGGRAPH_WEBHOOK_URL="http://127.0.0.1:8001/webhook" pnpm phase1:langgraph-smoke
 ```

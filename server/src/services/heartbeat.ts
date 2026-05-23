@@ -10,6 +10,7 @@ import {
   agentRuntimeState,
   agentTaskSessions,
   agentWakeupRequests,
+  companies,
   heartbeatRunEvents,
   heartbeatRuns,
   issues,
@@ -1967,6 +1968,23 @@ export function heartbeatService(db: Db) {
 
     const runtime = await ensureRuntimeState(agent);
     const context = parseObject(run.contextSnapshot);
+    const companyRow = await db
+      .select({ name: companies.name, issuePrefix: companies.issuePrefix })
+      .from(companies)
+      .where(eq(companies.id, agent.companyId))
+      .then((rows) => rows[0] ?? null);
+    if (companyRow) {
+      context.companyName = companyRow.name;
+      context.companyIssuePrefix = companyRow.issuePrefix;
+    }
+    const agentForAdapter =
+      companyRow !== null
+        ? {
+            ...agent,
+            companyName: companyRow.name,
+            companyIssuePrefix: companyRow.issuePrefix,
+          }
+        : agent;
     const taskKey = deriveTaskKey(context, null);
     const sessionCodec = getAdapterSessionCodec(agent.adapterType);
     const issueId = readNonEmptyString(context.issueId);
@@ -2514,7 +2532,7 @@ export function heartbeatService(db: Db) {
       }
       const adapterResult = await adapter.execute({
         runId: run.id,
-        agent,
+        agent: agentForAdapter,
         runtime: runtimeForAdapter,
         config: runtimeConfig,
         context,

@@ -36,6 +36,10 @@ export type {
   AdapterSessionManagement,
   ResolvedSessionCompactionPolicy,
 } from "./session-compaction.js";
+export type {
+  OpenClawSessionListMetadata,
+  OpenClawSessionListSource,
+} from "./openclaw-session-list-metadata.js";
 export {
   ADAPTER_SESSION_MANAGEMENT,
   LEGACY_SESSIONED_ADAPTER_TYPES,

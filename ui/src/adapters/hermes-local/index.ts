@@ -1,7 +1,19 @@
-import type { UIAdapterModule } from "../types";
-import { parseHermesStdoutLine } from "hermes-paperclip-adapter/ui";
+import type { UIAdapterModule, CreateConfigValues, TranscriptEntry } from "../types";
 import { HermesLocalConfigFields } from "./config-fields";
-import { buildHermesConfig } from "hermes-paperclip-adapter/ui";
+
+function parseHermesStdoutLine(line: string, ts: string): TranscriptEntry[] {
+  return [{ kind: "assistant", ts, text: line }];
+}
+
+function buildHermesConfig(values: CreateConfigValues): Record<string, unknown> {
+  return {
+    model: values.model || "anthropic/claude-sonnet-4",
+    timeoutSec: 300,
+    persistSession: true,
+    ...(values.cwd ? { cwd: values.cwd } : {}),
+    ...(values.instructionsFilePath ? { instructionsFilePath: values.instructionsFilePath } : {}),
+  };
+}
 
 export const hermesLocalUIAdapter: UIAdapterModule = {
   type: "hermes_local",

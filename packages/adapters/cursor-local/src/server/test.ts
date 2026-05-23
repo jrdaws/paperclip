@@ -18,6 +18,7 @@ import path from "node:path";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
 import { parseCursorJsonl } from "./parse.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
+import { prependCursorAgentCliPath } from "../shared/path-env.js";
 
 function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
@@ -118,9 +119,16 @@ export async function testEnvironment(
   for (const [key, value] of Object.entries(envConfig)) {
     if (typeof value === "string") env[key] = value;
   }
-  const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
+  const runtimeEnv = prependCursorAgentCliPath(ensurePathInEnv({ ...process.env, ...env }));
   try {
     await ensureCommandResolvable(command, cwd, runtimeEnv);
+    const augmentedPath = runtimeEnv.PATH ?? runtimeEnv.Path;
+    if (typeof augmentedPath === "string" && augmentedPath.length > 0) {
+      env.PATH = augmentedPath;
+      if (process.platform === "win32") {
+        env.Path = augmentedPath;
+      }
+    }
     checks.push({
       code: "cursor_command_resolvable",
       level: "info",

@@ -14,7 +14,11 @@ All environment variables that Paperclip uses for server configuration.
 | `DATABASE_URL` | (embedded) | PostgreSQL connection string |
 | `PAPERCLIP_HOME` | `~/.paperclip` | Base directory for all Paperclip data |
 | `PAPERCLIP_INSTANCE_ID` | `default` | Instance identifier (for multiple local instances) |
-| `PAPERCLIP_DEPLOYMENT_MODE` | `local_trusted` | Runtime mode override |
+| `PAPERCLIP_DEPLOYMENT_MODE` | `local_trusted` | Runtime mode override (`local_trusted` or `authenticated`) |
+| `PAPERCLIP_DEPLOYMENT_EXPOSURE` | `private` | Network exposure (`private` or `public`) — only applies in `authenticated` mode |
+| `PAPERCLIP_PUBLIC_URL` | (none) | Public-facing URL — required for `public` exposure mode |
+| `PAPERCLIP_ALLOWED_HOSTNAMES` | (none) | Comma-separated allowed hostnames for private authenticated mode |
+| `BETTER_AUTH_SECRET` | (none) | Session encryption secret — required for `authenticated` mode |
 
 ## Secrets
 
@@ -48,3 +52,5 @@ These are set automatically by the server when invoking agents:
 |----------|-------------|
 | `ANTHROPIC_API_KEY` | Anthropic API key (for Claude Local adapter) |
 | `OPENAI_API_KEY` | OpenAI API key (for Codex Local adapter) |
+| `GEMINI_API_KEY` | Google Gemini API key (for Gemini Local adapter) |
+| `GOOGLE_API_KEY` | Alternative Google API key (for Gemini Local adapter) |

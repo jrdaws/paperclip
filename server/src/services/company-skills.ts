@@ -16,6 +16,8 @@ import type {
   CompanySkillFileInventoryEntry,
   CompanySkillImportResult,
   CompanySkillListItem,
+  CompanySkillManifestSyncRequest,
+  CompanySkillManifestSyncResult,
   CompanySkillProjectScanConflict,
   CompanySkillProjectScanRequest,
   CompanySkillProjectScanResult,
@@ -28,7 +30,7 @@ import type {
 } from "@paperclipai/shared";
 import { normalizeAgentUrlKey } from "@paperclipai/shared";
 import { findServerAdapter } from "../adapters/index.js";
-import { resolvePaperclipInstanceRoot } from "../home-paths.js";
+import { resolvePaperclipInstanceRoot, resolveHomeAwarePath } from "../home-paths.js";
 import { notFound, unprocessable } from "../errors.js";
 import { agentService } from "./agents.js";
 import { projectService } from "./projects.js";
@@ -2331,6 +2333,118 @@ export function companySkillService(db: Db) {
     return skill;
   }
 
+  async function syncFromManifest(
+    companyId: string,
+    input: CompanySkillManifestSyncRequest = {},
+  ): Promise<CompanySkillManifestSyncResult> {
+    await ensureSkillInventoryCurrent(companyId);
+
+    const defaultManifestPath = path.resolve(
+      resolveHomeAwarePath("~/.openclaw/workspace/docs/skill-manifest.json"),
+    );
+    const manifestPath = input.manifestPath
+      ? path.resolve(input.manifestPath)
+      : defaultManifestPath;
+
+    const manifestStat = await statPath(manifestPath);
+    if (!manifestStat?.isFile()) {
+      throw unprocessable(`Skill manifest not found at ${manifestPath}. Run refresh-skill-manifest.py first.`);
+    }
+
+    const raw = await fs.readFile(manifestPath, "utf8");
+    let manifest: {
+      generated: string;
+      count: number;
+      skills: Array<{
+        id: string;
+        name: string;
+        description: string;
+        invocable: boolean | null;
+        location: string;
+      }>;
+    };
+    try {
+      manifest = JSON.parse(raw);
+    } catch {
+      throw unprocessable("Failed to parse skill manifest JSON.");
+    }
+
+    const locationRoots: Record<string, string> = {
+      "workspace/skills": resolveHomeAwarePath("~/.openclaw/workspace/skills"),
+      "workspace/.cursor/skills": resolveHomeAwarePath("~/.openclaw/workspace/.cursor/skills"),
+      "global/~/.cursor/skills": resolveHomeAwarePath("~/.cursor/skills"),
+    };
+
+    const imported: CompanySkill[] = [];
+    const updated: CompanySkill[] = [];
+    const skippedEntries: Array<{ id: string; location: string; reason: string }> = [];
+    const warnings: string[] = [];
+    const existingSkills = await listFull(companyId);
+    const existingByKey = new Map(existingSkills.map((s) => [s.key, s]));
+
+    for (const entry of manifest.skills) {
+      const rootDir = locationRoots[entry.location];
+      if (!rootDir) {
+        skippedEntries.push({
+          id: entry.id,
+          location: entry.location,
+          reason: `Unknown location "${entry.location}"`,
+        });
+        continue;
+      }
+
+      const skillDir = path.resolve(rootDir, entry.id);
+      const skillFile = path.join(skillDir, "SKILL.md");
+      const skillFileStat = await statPath(skillFile);
+      if (!skillFileStat?.isFile()) {
+        skippedEntries.push({
+          id: entry.id,
+          location: entry.location,
+          reason: "SKILL.md not found on disk",
+        });
+        continue;
+      }
+
+      try {
+        const skill = await readLocalSkillImportFromDirectory(companyId, skillDir, {
+          inventoryMode: "full",
+          metadata: {
+            sourceKind: "manifest_sync",
+            manifestLocation: entry.location,
+          },
+        });
+
+        const isExisting = existingByKey.has(skill.key);
+        const persisted = (await upsertImportedSkills(companyId, [skill]))[0];
+        if (!persisted) continue;
+
+        if (isExisting) {
+          updated.push(persisted);
+        } else {
+          imported.push(persisted);
+        }
+        existingByKey.set(persisted.key, persisted);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        skippedEntries.push({
+          id: entry.id,
+          location: entry.location,
+          reason: message,
+        });
+        warnings.push(`Failed to import ${entry.id}: ${message}`);
+      }
+    }
+
+    return {
+      manifestGenerated: manifest.generated,
+      manifestCount: manifest.count,
+      imported,
+      updated,
+      skipped: skippedEntries,
+      warnings,
+    };
+  }
+
   return {
     list,
     listFull,
@@ -2351,5 +2465,6 @@ export function companySkillService(db: Db) {
     importPackageFiles,
     installUpdate,
     listRuntimeSkillEntries,
+    syncFromManifest,
   };
 }

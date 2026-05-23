@@ -25,6 +25,7 @@ import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
 import { parseCursorJsonl, isCursorUnknownSessionError } from "./parse.js";
 import { normalizeCursorStreamLine } from "../shared/stream.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
+import { prependCursorAgentCliPath } from "../shared/path-env.js";
 
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -269,8 +270,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     ),
   );
   const billingType = resolveCursorBillingType(effectiveEnv);
-  const runtimeEnv = ensurePathInEnv(effectiveEnv);
+  const runtimeEnv = prependCursorAgentCliPath(ensurePathInEnv(effectiveEnv));
   await ensureCommandResolvable(command, cwd, runtimeEnv);
+  const augmentedPath = runtimeEnv.PATH ?? runtimeEnv.Path;
+  if (typeof augmentedPath === "string" && augmentedPath.length > 0) {
+    env.PATH = augmentedPath;
+    if (process.platform === "win32") {
+      env.Path = augmentedPath;
+    }
+  }
 
   const timeoutSec = asNumber(config.timeoutSec, 0);
   const graceSec = asNumber(config.graceSec, 20);

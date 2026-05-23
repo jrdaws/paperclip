@@ -178,13 +178,51 @@ function ProjectIssuesList({ projectId, companyId }: { projectId: string; compan
   });
 
   const updateIssue = useMutation({
+    mutationKey: ["updateIssue", companyId, projectId],
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       issuesApi.update(id, data),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.listByProject(companyId, projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(companyId) });
     },
   });
+
+  const pendingMutations = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; data: Record<string, unknown> }>(),
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const { timer } of pendingMutations.current.values()) clearTimeout(timer);
+    };
+  }, []);
+
+  const handleUpdateIssue = useCallback(
+    (id: string, data: Record<string, unknown>) => {
+      const qk = queryKeys.issues.listByProject(companyId, projectId);
+
+      queryClient.setQueryData(qk, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((issue: Record<string, unknown>) =>
+          issue.id === id ? { ...issue, ...data } : issue,
+        );
+      });
+
+      const pending = pendingMutations.current.get(id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        data = { ...pending.data, ...data };
+      }
+
+      const timer = setTimeout(() => {
+        pendingMutations.current.delete(id);
+        updateIssue.mutate({ id, data });
+      }, 250);
+
+      pendingMutations.current.set(id, { timer, data });
+    },
+    [companyId, projectId, queryClient, updateIssue],
+  );
 
   return (
     <IssuesList
@@ -195,7 +233,7 @@ function ProjectIssuesList({ projectId, companyId }: { projectId: string; compan
       liveIssueIds={liveIssueIds}
       projectId={projectId}
       viewStateKey={`paperclip:project-view:${projectId}`}
-      onUpdateIssue={(id, data) => updateIssue.mutate({ id, data })}
+      onUpdateIssue={handleUpdateIssue}
     />
   );
 }

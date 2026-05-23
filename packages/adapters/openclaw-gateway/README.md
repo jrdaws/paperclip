@@ -38,8 +38,9 @@ By default the adapter sends a signed `device` payload in `connect` params.
 
 The adapter supports the same session routing model as HTTP OpenClaw mode:
 
-- `sessionKeyStrategy=issue|fixed|run`
-- `sessionKey` is used when strategy is `fixed`
+- `sessionKeyStrategy=fixed|issue|run` (default **`fixed`** — one continuous OpenClaw chat per agent unless you override `sessionKey`)
+- `sessionKey` is used when strategy is `fixed` (default **`paperclip`** if unset). With multiple Paperclip agents on `fixed`, give each agent a **distinct** `sessionKey` (e.g. `paperclip-ceo`, `paperclip-eng`) so they do not share one OpenClaw transcript.
+- `issue` maps to `paperclip:issue:<issueId>` when an issue id is present (separate transcript per Paperclip issue)
 
 Resolved session key is sent as `agent.sessionKey`.
 

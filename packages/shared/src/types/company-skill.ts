@@ -150,3 +150,16 @@ export interface CompanySkillFileUpdateRequest {
   path: string;
   content: string;
 }
+
+export interface CompanySkillManifestSyncRequest {
+  manifestPath?: string;
+}
+
+export interface CompanySkillManifestSyncResult {
+  manifestGenerated: string;
+  manifestCount: number;
+  imported: CompanySkill[];
+  updated: CompanySkill[];
+  skipped: Array<{ id: string; location: string; reason: string }>;
+  warnings: string[];
+}

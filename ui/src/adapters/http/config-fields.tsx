@@ -5,6 +5,9 @@ import {
   help,
 } from "../../components/agent-config-primitives";
 import { DEFAULT_RUNTIME_PROFILES } from "@paperclipai/shared";
+import { BackendCapabilitiesCard } from "./backend-capabilities-card";
+import { CrewBuilderFields } from "./crew-builder";
+import { PayloadTemplateJsonField } from "../runtime-json-fields";
 
 const inputClass =
   "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
@@ -96,7 +99,10 @@ export function HttpConfigFields({
                       httpRuntimeHeader: "CrewAI",
                     }
                   : next === "http+langgraph"
-                    ? { httpRuntimeHeader: "LangGraph" }
+                    ? {
+                        url: values!.url || "http://127.0.0.1:8001/webhook",
+                        httpRuntimeHeader: "LangGraph",
+                      }
                     : {}),
               });
               return;
@@ -134,6 +140,40 @@ export function HttpConfigFields({
         <span className="mx-1">-</span>
         <span>{effectiveUrl ? "Webhook configured" : "Missing webhook URL"}</span>
       </div>
+
+      {effectiveUrl && typeof effectiveUrl === "string" && (
+        <BackendCapabilitiesCard orchestratorUrl={effectiveUrl} />
+      )}
+
+      {createRuntimeProfile === "http+crewai" ? (
+        <CrewBuilderFields
+          payloadJson={
+            isCreate
+              ? values?.payloadTemplateJson ?? ""
+              : JSON.stringify(config.payloadTemplate ?? {}, null, 2)
+          }
+          onPayloadChange={(json) => {
+            if (isCreate) {
+              set?.({ payloadTemplateJson: json });
+            } else {
+              try {
+                const parsed = JSON.parse(json);
+                mark("adapterConfig", "payloadTemplate", parsed);
+              } catch {
+                /* draft — keep local until valid */
+              }
+            }
+          }}
+        />
+      ) : (
+        <PayloadTemplateJsonField
+          isCreate={isCreate}
+          values={values}
+          set={set}
+          config={config}
+          mark={mark}
+        />
+      )}
 
     </>
   );

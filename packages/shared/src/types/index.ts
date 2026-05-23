@@ -20,6 +20,8 @@ export type {
   CompanySkillCreateRequest,
   CompanySkillFileDetail,
   CompanySkillFileUpdateRequest,
+  CompanySkillManifestSyncRequest,
+  CompanySkillManifestSyncResult,
 } from "./company-skill.js";
 export type {
   AgentSkillSyncMode,

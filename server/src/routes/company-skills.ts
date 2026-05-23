@@ -4,6 +4,7 @@ import {
   companySkillCreateSchema,
   companySkillFileUpdateSchema,
   companySkillImportSchema,
+  companySkillManifestSyncRequestSchema,
   companySkillProjectScanRequestSchema,
 } from "@paperclipai/shared";
 import { validate } from "../middleware/validate.js";
@@ -213,6 +214,38 @@ export function companySkillRoutes(db: Db) {
           importedCount: result.imported.length,
           updatedCount: result.updated.length,
           conflictCount: result.conflicts.length,
+          warningCount: result.warnings.length,
+        },
+      });
+
+      res.json(result);
+    },
+  );
+
+  router.post(
+    "/companies/:companyId/skills/sync-manifest",
+    validate(companySkillManifestSyncRequestSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      await assertCanMutateCompanySkills(req, companyId);
+      const result = await svc.syncFromManifest(companyId, req.body);
+
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "company.skills_manifest_synced",
+        entityType: "company",
+        entityId: companyId,
+        details: {
+          manifestGenerated: result.manifestGenerated,
+          manifestCount: result.manifestCount,
+          importedCount: result.imported.length,
+          updatedCount: result.updated.length,
+          skippedCount: result.skipped.length,
           warningCount: result.warnings.length,
         },
       });

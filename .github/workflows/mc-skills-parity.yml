@@ -1,0 +1,61 @@
+name: MC Skills Parity
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "packages/shared/src/types/company-skill.ts"
+      - "packages/shared/src/validators/company-skill.ts"
+      - "server/src/services/company-skills.ts"
+      - "server/src/routes/company-skills.ts"
+      - "server/src/__tests__/company-skills.test.ts"
+      - "ui/src/api/companySkills.ts"
+      - "ui/src/pages/CompanySkills.tsx"
+      - "scripts/report-mc-skills-parity-governance.mjs"
+      - ".github/workflows/mc-skills-parity.yml"
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (shared)
+        run: pnpm --filter @paperclipai/shared typecheck
+
+      - name: Typecheck (server)
+        run: pnpm --filter @paperclipai/server typecheck
+
+      - name: Typecheck (ui)
+        run: pnpm --filter @paperclipai/ui typecheck
+
+      - name: Contract tests
+        run: pnpm test:run server/src/__tests__/company-skills.test.ts
+
+      - name: Build governance report
+        run: node scripts/report-mc-skills-parity-governance.mjs
+
+      - name: Upload governance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mc-skills-parity-governance-report
+          path: report/mc-skills-parity-governance-report.md
+          retention-days: 14

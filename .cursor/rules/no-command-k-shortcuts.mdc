@@ -1,0 +1,19 @@
+---
+description: Disallow Cmd/Ctrl+K search shortcuts by default
+alwaysApply: true
+---
+
+# No Command-K Search Shortcuts
+
+Do not add `Cmd+K`, `Ctrl+K`, or `⌘K` search shortcuts in any project unless the user explicitly requests that behavior in the current task.
+
+## Default Requirements
+
+- Do not register keyboard handlers for `metaKey/ctrlKey + k`.
+- Do not render UI shortcut badges/hints like `⌘K`, `Ctrl+K`, or `Command + K`.
+- If a search input needs global focus behavior, use non-colliding patterns (for example `/`) only when requested.
+- When updating existing code, remove `Cmd/Ctrl+K` handlers and displayed hints unless the user explicitly asks to keep them.
+
+## Re-introduction Gate
+
+Only add this feature when the user clearly asks for Command/Ctrl+K support in the current conversation.

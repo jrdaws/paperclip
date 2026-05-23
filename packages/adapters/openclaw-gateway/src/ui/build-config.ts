@@ -15,9 +15,20 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
 export function buildOpenClawGatewayConfig(v: CreateConfigValues): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.url) ac.url = v.url;
-  ac.timeoutSec = 120;
-  ac.waitTimeoutMs = 120000;
-  ac.sessionKeyStrategy = "issue";
+  const token = typeof v.gatewayToken === "string" ? v.gatewayToken.trim() : "";
+  if (token) {
+    ac.headers = { "x-openclaw-token": token };
+  }
+  const pcUrl = typeof v.paperclipApiUrl === "string" ? v.paperclipApiUrl.trim() : "";
+  if (pcUrl) {
+    ac.paperclipApiUrl = pcUrl;
+  }
+  // Defaults tuned for Next.js-style repos (lint + tsc + test + build); override per agent in Paperclip if shorter runs suffice.
+  ac.timeoutSec = 900;
+  ac.waitTimeoutMs = 900_000;
+  ac.sessionKeyStrategy = "fixed";
+  // Placeholder; Paperclip server seeds paperclip:agent:<id> on hire unless overridden.
+  ac.sessionKey = "paperclip";
   ac.role = "operator";
   ac.scopes = ["operator.admin"];
   const payloadTemplate = parseJsonObject(v.payloadTemplateJson ?? "");

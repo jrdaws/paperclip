@@ -18,7 +18,10 @@ import { Shield } from "lucide-react";
 import { cn, agentUrl } from "../lib/utils";
 import { roleLabels } from "../components/agent-config-primitives";
 import { AgentConfigForm, type CreateConfigValues } from "../components/AgentConfigForm";
-import { defaultCreateValues } from "../components/agent-config-defaults";
+import {
+  defaultCreateValues,
+  openclawGatewayCreatePreset,
+} from "../components/agent-config-defaults";
 import { getUIAdapter } from "../adapters";
 import { ReportsToPicker } from "../components/ReportsToPicker";
 import {
@@ -40,6 +43,180 @@ const SUPPORTED_ADVANCED_ADAPTER_TYPES = new Set<CreateConfigValues["adapterType
   "http",
 ]);
 
+export interface AgentTemplate {
+  id: string;
+  name: string;
+  title: string;
+  role: string;
+  adapterType: CreateConfigValues["adapterType"];
+  description: string;
+  configOverrides?: Partial<CreateConfigValues>;
+  suggestedSkillPatterns?: string[];
+}
+
+export const AGENT_TEMPLATES: AgentTemplate[] = [
+  {
+    id: "cursor-engineer",
+    name: "Forge",
+    title: "Full-Stack Engineer",
+    role: "engineer",
+    adapterType: "cursor",
+    description: "Cursor IDE agent with full file access, shell, git, and 48 skills",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 300,
+      dangerouslySkipPermissions: true,
+      maxTurnsPerRun: 300,
+    },
+    suggestedSkillPatterns: ["audit", "verify", "react", "optimize"],
+  },
+  {
+    id: "claude-engineer",
+    name: "Forge-CLI",
+    title: "CLI Engineer",
+    role: "engineer",
+    adapterType: "claude_local",
+    description: "Claude Code CLI agent with shell, file access, and workspace skills",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 300,
+      dangerouslySkipPermissions: true,
+      maxTurnsPerRun: 300,
+    },
+    suggestedSkillPatterns: ["audit", "verify", "finishing"],
+  },
+  {
+    id: "cursor-researcher",
+    name: "Scout",
+    title: "Research Analyst",
+    role: "researcher",
+    adapterType: "cursor",
+    description: "Cursor agent optimized for deep research with web search and browser",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 600,
+      dangerouslySkipPermissions: true,
+    },
+    suggestedSkillPatterns: ["research", "scraper", "content"],
+  },
+  {
+    id: "cursor-qa",
+    name: "Sentinel",
+    title: "QA Reviewer",
+    role: "qa",
+    adapterType: "cursor",
+    description: "Code review, testing, and audit specialist with lint and type-check access",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 300,
+      dangerouslySkipPermissions: true,
+      maxTurnsPerRun: 200,
+    },
+    suggestedSkillPatterns: ["audit", "verify", "review", "normalize"],
+  },
+  {
+    id: "claude-ops",
+    name: "Atlas",
+    title: "Operations Manager",
+    role: "pm",
+    adapterType: "claude_local",
+    description: "Claude CLI agent for task coordination, triage, and operational oversight",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 180,
+      dangerouslySkipPermissions: true,
+    },
+    suggestedSkillPatterns: ["audit", "verify", "self-improvement"],
+  },
+  {
+    id: "crewai-strategist",
+    name: "Strategist",
+    title: "Strategy Agent",
+    role: "general",
+    adapterType: "http",
+    description: "CrewAI agent with tiered LLM routing for structured strategic analysis",
+    configOverrides: {
+      httpRuntimeProfile: "http+crewai",
+      httpRuntimeHeader: "CrewAI",
+      url: "http://127.0.0.1:8000/webhook",
+      heartbeatEnabled: true,
+      intervalSec: 300,
+    },
+  },
+  {
+    id: "langgraph-pipeline",
+    name: "Pipeline",
+    title: "Pipeline Runner",
+    role: "general",
+    adapterType: "http",
+    description: "LangGraph agent with durable checkpoints for long-running workflows",
+    configOverrides: {
+      httpRuntimeProfile: "http+langgraph",
+      httpRuntimeHeader: "LangGraph",
+      url: "http://127.0.0.1:8001/webhook",
+      heartbeatEnabled: true,
+      intervalSec: 600,
+    },
+  },
+  {
+    id: "codex-builder",
+    name: "Spark",
+    title: "Speed Builder",
+    role: "engineer",
+    adapterType: "codex_local",
+    description: "Codex agent — fast, sandboxed execution optimized for bulk and cost-sensitive tasks",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 300,
+    },
+    suggestedSkillPatterns: ["audit", "verify"],
+  },
+  {
+    id: "openclaw-relay",
+    name: "Relay",
+    title: "Gateway Agent",
+    role: "general",
+    adapterType: "openclaw_gateway",
+    description: "OpenClaw Gateway agent dispatched by Paperclip via WebSocket protocol",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 300,
+    },
+    suggestedSkillPatterns: ["audit", "self-improvement"],
+  },
+  {
+    id: "cursor-ceo",
+    name: "Chief",
+    title: "Chief Executive Officer",
+    role: "ceo",
+    adapterType: "cursor",
+    description: "CEO agent with hiring authority, template catalog access, and strategic coordination skills",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 180,
+      dangerouslySkipPermissions: true,
+      maxTurnsPerRun: 300,
+    },
+    suggestedSkillPatterns: ["hiring", "audit", "self-improvement", "status"],
+  },
+  {
+    id: "openclaw-ceo",
+    name: "Chief",
+    title: "Chief Executive Officer",
+    role: "ceo",
+    adapterType: "openclaw_gateway",
+    description:
+      "CEO via OpenClaw Gateway — wakes your OpenClaw agent (Codex in payload). Paste gateway token after create.",
+    configOverrides: {
+      heartbeatEnabled: true,
+      intervalSec: 180,
+      maxTurnsPerRun: 300,
+      dangerouslySkipPermissions: true,
+    },
+    suggestedSkillPatterns: ["hiring", "audit", "self-improvement", "status"],
+  },
+];
+
 export function createValuesForAdapterType(
   adapterType: CreateConfigValues["adapterType"],
 ): CreateConfigValues {
@@ -53,6 +230,13 @@ export function createValuesForAdapterType(
     nextValues.model = DEFAULT_GEMINI_LOCAL_MODEL;
   } else if (adapterType === "cursor") {
     nextValues.model = DEFAULT_CURSOR_LOCAL_MODEL;
+    nextValues.heartbeatEnabled = true;
+    nextValues.intervalSec = 300;
+    nextValues.dangerouslySkipPermissions = true;
+  } else if (adapterType === "claude_local") {
+    nextValues.heartbeatEnabled = true;
+    nextValues.intervalSec = 300;
+    nextValues.dangerouslySkipPermissions = true;
   } else if (adapterType === "opencode_local") {
     nextValues.model = "";
   } else if (adapterType === "http") {
@@ -61,8 +245,18 @@ export function createValuesForAdapterType(
     nextValues.url = "http://127.0.0.1:8000/webhook";
     nextValues.heartbeatEnabled = true;
     nextValues.intervalSec = 300;
+  } else if (adapterType === "openclaw_gateway") {
+    Object.assign(nextValues, openclawGatewayCreatePreset());
   }
   return nextValues;
+}
+
+export function createValuesForTemplate(template: AgentTemplate): CreateConfigValues {
+  const base = createValuesForAdapterType(template.adapterType);
+  if (template.configOverrides) {
+    return { ...base, ...template.configOverrides, adapterType: template.adapterType };
+  }
+  return base;
 }
 
 export function NewAgent() {
@@ -74,13 +268,20 @@ export function NewAgent() {
   const presetAdapterType = searchParams.get("adapterType");
   const presetWebhookUrl = searchParams.get("webhookUrl");
   const presetRuntimeProfile = searchParams.get("runtimeProfile");
+  const presetTemplateId = searchParams.get("template");
+  const matchedTemplate = presetTemplateId
+    ? AGENT_TEMPLATES.find((t) => t.id === presetTemplateId)
+    : undefined;
 
-  const [name, setName] = useState("");
-  const [title, setTitle] = useState("");
-  const [role, setRole] = useState("general");
+  const [name, setName] = useState(matchedTemplate?.name ?? "");
+  const [title, setTitle] = useState(matchedTemplate?.title ?? "");
+  const [role, setRole] = useState(matchedTemplate?.role ?? "general");
   const [reportsTo, setReportsTo] = useState<string | null>(null);
-  const [configValues, setConfigValues] = useState<CreateConfigValues>(defaultCreateValues);
+  const [configValues, setConfigValues] = useState<CreateConfigValues>(
+    matchedTemplate ? createValuesForTemplate(matchedTemplate) : defaultCreateValues,
+  );
   const [selectedSkillKeys, setSelectedSkillKeys] = useState<string[]>([]);
+  const [skillsAutoSelected, setSkillsAutoSelected] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -127,6 +328,24 @@ export function NewAgent() {
   }, [isFirstAgent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (skillsAutoSelected || !matchedTemplate?.suggestedSkillPatterns?.length || !companySkills?.length) return;
+    const patterns = matchedTemplate.suggestedSkillPatterns;
+    const matched = companySkills
+      .filter((skill) => !skill.key.startsWith("paperclipai/paperclip/"))
+      .filter((skill) =>
+        patterns.some((p) => {
+          const lower = p.toLowerCase();
+          return skill.key.toLowerCase().includes(lower) || skill.name.toLowerCase().includes(lower);
+        }),
+      )
+      .map((skill) => skill.key);
+    if (matched.length > 0) {
+      setSelectedSkillKeys(matched);
+      setSkillsAutoSelected(true);
+    }
+  }, [matchedTemplate, companySkills, skillsAutoSelected]);
+
+  useEffect(() => {
     const requested = presetAdapterType;
     if (!requested) return;
     if (!SUPPORTED_ADVANCED_ADAPTER_TYPES.has(requested as CreateConfigValues["adapterType"])) {
@@ -154,6 +373,9 @@ export function NewAgent() {
     mutationFn: (data: Record<string, unknown>) =>
       agentsApi.hire(selectedCompanyId!, data),
     onSuccess: (result) => {
+      if (matchedTemplate) {
+        fetch(`/api/agent-templates/${matchedTemplate.id}/use`, { method: "POST" }).catch(() => {});
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(selectedCompanyId!) });
       queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
       navigate(agentUrl(result.agent));

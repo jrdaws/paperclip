@@ -42,6 +42,8 @@ export type ProjectConfigFieldKey =
   | "description"
   | "status"
   | "goals"
+  | "demo_site_url"
+  | "demo_app_url"
   | "execution_workspace_enabled"
   | "execution_workspace_default_mode"
   | "execution_workspace_base_ref"
@@ -581,6 +583,51 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
             </Popover>
           )}
         </PropertyRow>
+        <PropertyRow
+          label={<FieldLabel label="Demo site URL" state={fieldState("demo_site_url")} />}
+          alignStart
+        >
+          {onUpdate || onFieldUpdate ? (
+            <DraftInput
+              value={project.demoSiteUrl ?? ""}
+              onCommit={(v) =>
+                commitField("demo_site_url", {
+                  demoSiteUrl: v.trim() === "" ? null : v.trim(),
+                })
+              }
+              immediate
+              className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs font-mono outline-none"
+              placeholder="https://localhost:3000 or deployed marketing URL"
+            />
+          ) : (
+            <span className="text-xs font-mono text-muted-foreground">{project.demoSiteUrl ?? "—"}</span>
+          )}
+        </PropertyRow>
+        <PropertyRow
+          label={<FieldLabel label="App / second URL" state={fieldState("demo_app_url")} />}
+          alignStart
+        >
+          {onUpdate || onFieldUpdate ? (
+            <DraftInput
+              value={project.demoAppUrl ?? ""}
+              onCommit={(v) =>
+                commitField("demo_app_url", {
+                  demoAppUrl: v.trim() === "" ? null : v.trim(),
+                })
+              }
+              immediate
+              className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs font-mono outline-none"
+              placeholder="https://… (TestFlight, admin, Expo, …)"
+            />
+          ) : (
+            <span className="text-xs font-mono text-muted-foreground">{project.demoAppUrl ?? "—"}</span>
+          )}
+        </PropertyRow>
+        <p className="text-[11px] text-muted-foreground -mt-2 mb-1">
+          <strong>Canonical rule:</strong> this tab is the only source of truth for each project&apos;s demo/app
+          URLs for the whole company. The <strong>Apps</strong> page reads these fields — set them here (https or
+          http for local) so nothing else contradicts them.
+        </p>
         <PropertyRow label={<FieldLabel label="Created" state="idle" />}>
           <span className="text-sm">{formatDate(project.createdAt)}</span>
         </PropertyRow>

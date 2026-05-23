@@ -111,4 +111,24 @@ export const issuesApi = {
   updateWorkProduct: (id: string, data: Record<string, unknown>) =>
     api.patch<IssueWorkProduct>(`/work-products/${id}`, data),
   deleteWorkProduct: (id: string) => api.delete<IssueWorkProduct>(`/work-products/${id}`),
+  listTransitions: (companyId: string, opts?: { since?: string; until?: string }) => {
+    const params = new URLSearchParams();
+    if (opts?.since) params.set("since", opts.since);
+    if (opts?.until) params.set("until", opts.until);
+    const qs = params.toString();
+    return api.get<StatusTransition[]>(
+      `/companies/${companyId}/issue-transitions${qs ? `?${qs}` : ""}`,
+    );
+  },
 };
+
+export interface StatusTransition {
+  id: string;
+  companyId: string;
+  issueId: string;
+  fromStatus: string | null;
+  toStatus: string;
+  actorType: string | null;
+  actorId: string | null;
+  createdAt: string;
+}

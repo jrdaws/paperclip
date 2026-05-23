@@ -1,20 +1,35 @@
+/**
+ * First URL segment after "/" for board routes mounted under `/:companyPrefix/*`.
+ * Must stay in sync with `boardRoutes()` in App.tsx — if a new top-level board path
+ * is added, include it here or `/thatWord` will be misread as an `issuePrefix`.
+ *
+ * Note: `boardRoutes()` also has a catch-all `/:pluginRoutePath` for company-scoped plugins;
+ * arbitrary plugin slugs cannot be listed here — avoid choosing an `issuePrefix` that matches a plugin slug.
+ */
 const BOARD_ROUTE_ROOTS = new Set([
-  "dashboard",
+  "activity",
+  "agents",
+  "apps",
+  "approvals",
   "companies",
   "company",
-  "skills",
-  "org",
-  "agents",
-  "projects",
-  "issues",
-  "routines",
-  "goals",
-  "approvals",
   "costs",
-  "usage",
-  "activity",
-  "inbox",
+  "dashboard",
   "design-guide",
+  "execution-workspaces",
+  "goals",
+  "inbox",
+  "issues",
+  "onboarding",
+  "org",
+  "plugins",
+  "projects",
+  "routines",
+  "settings",
+  "skills",
+  "status",
+  "tests",
+  "usage",
 ]);
 
 const GLOBAL_ROUTE_ROOTS = new Set(["auth", "invite", "board-claim", "cli-auth", "docs", "instance"]);
@@ -48,6 +63,12 @@ export function isBoardPathWithoutPrefix(pathname: string): boolean {
   const root = getRootSegment(pathname);
   if (!root) return false;
   return BOARD_ROUTE_ROOTS.has(root.toLowerCase());
+}
+
+/** First path segment looks like a board/global route, not a company issue prefix. */
+export function isReservedUrlSegment(segment: string): boolean {
+  const s = segment.trim().toLowerCase();
+  return GLOBAL_ROUTE_ROOTS.has(s) || BOARD_ROUTE_ROOTS.has(s);
 }
 
 export function extractCompanyPrefixFromPath(pathname: string): string | null {

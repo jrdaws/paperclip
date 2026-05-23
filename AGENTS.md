@@ -84,6 +84,12 @@ Prefer additive updates. Keep `doc/SPEC.md` and `doc/SPEC-implementation.md` ali
 5. Keep plan docs dated and centralized.
 New plan documents belong in `doc/plans/` and should use `YYYY-MM-DD-slug.md` filenames.
 
+6. **Canonical demo & app URLs.**
+   Every shipped product’s **demo website** (and optional **app** URL) must be stored only on the **Paperclip project** under **Project → Configuration → “Product & demo links”** (`demo_site_url` / `demo_app_url`). The **Apps** page is the operator launchpad and reads those fields. Do not maintain a parallel “official demo” list in Mission Control metadata, issues, or external docs without mirroring the project row first — that avoids contradictions across companies.
+
+7. **OpenClaw gateway session keys.**
+   New `openclaw_gateway` agents with **`sessionKeyStrategy: fixed`** get **`sessionKey` auto-seeded to `paperclip:agent:<agentId>`** when the key was empty or the legacy default `paperclip`, so each agent maps to its own OpenClaw thread unless operators intentionally share a custom key. Use **`issue`** only when every Paperclip issue must have an isolated OpenClaw session. See `doc/plans/2026-04-20-openclaw-session-list-display-metadata.md` for the planned session-picker display contract.
+
 ## 6. Database Change Workflow
 
 When changing data model:

@@ -1675,5 +1675,25 @@ export function issueRoutes(db: Db, storage: StorageService) {
     res.json({ ok: true });
   });
 
+  router.get("/companies/:companyId/issue-transitions", async (req, res) => {
+    const companyId = req.params.companyId;
+    assertCompanyAccess(req, companyId);
+
+    const since = req.query.since ? new Date(req.query.since as string) : undefined;
+    const until = req.query.until ? new Date(req.query.until as string) : undefined;
+
+    if (since && isNaN(since.getTime())) {
+      res.status(400).json({ error: "Invalid 'since' date" });
+      return;
+    }
+    if (until && isNaN(until.getTime())) {
+      res.status(400).json({ error: "Invalid 'until' date" });
+      return;
+    }
+
+    const transitions = await svc.listTransitions(companyId, { since, until });
+    res.json(transitions);
+  });
+
   return router;
 }

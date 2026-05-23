@@ -2,7 +2,7 @@
 
 ## Context
 
-Agents are the employees of a Paperclip company. Each agent has an adapter type (`claude_local`, `codex_local`, `process`, `http`) that determines how it runs, a position in the org chart (who it reports to), a heartbeat policy (how/when it wakes up), and a budget. The UI at `/agents` needs to support creating and configuring agents, viewing their org hierarchy, and inspecting what they've been doing -- their run history, live logs, and accumulated costs.
+Agents are the employees of a Paperclip company. Each agent has an adapter type (`claude_local`, `codex_local`, `gemini_local`, `opencode_local`, `cursor`, `pi_local`, `openclaw_gateway`, `hermes_local`, `process`, `http`) that determines how it runs, a position in the org chart (who it reports to), a heartbeat policy (how/when it wakes up), and a budget. The UI at `/agents` needs to support creating and configuring agents, viewing their org hierarchy, and inspecting what they've been doing -- their run history, live logs, and accumulated costs.
 
 This spec covers three surfaces:
 
@@ -32,7 +32,7 @@ Follows the existing `NewIssueDialog` / `NewProjectDialog` pattern: a `Dialog` c
 
 | Field | Control | Default | Notes |
 |-------|---------|---------|-------|
-| Adapter Type | Chip popover (select) | `claude_local` | `claude_local`, `codex_local`, `process`, `http` |
+| Adapter Type | Chip popover (select) | `claude_local` | All registered adapter types (see `AGENT_ADAPTER_TYPES`) |
 | Test environment | Button | -- | Runs adapter-specific diagnostics and returns pass/warn/fail checks for current unsaved config |
 | CWD | Text input | -- | Working directory for local adapters |
 | Prompt Template | Textarea | -- | Supports `{{ agent.id }}`, `{{ agent.name }}` etc. |

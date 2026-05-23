@@ -8,6 +8,10 @@ export interface AdapterAgent {
   name: string;
   adapterType: string | null;
   adapterConfig: unknown;
+  /** Set by Paperclip when invoking an adapter run (not persisted on the agent row). */
+  companyName?: string | null;
+  /** Board routing prefix, e.g. SEC (not persisted on the agent row). */
+  companyIssuePrefix?: string | null;
 }
 
 export interface AdapterRuntime {
@@ -352,6 +356,10 @@ export interface CreateConfigValues {
   workspaceBranchTemplate?: string;
   worktreeParentDir?: string;
   runtimeServicesJson?: string;
+  /** OpenClaw gateway: pasted into adapterConfig.headers["x-openclaw-token"] on save. */
+  gatewayToken?: string;
+  /** OpenClaw gateway: optional Paperclip base URL for wake text / OpenClaw skill (e.g. http://127.0.0.1:3100). */
+  paperclipApiUrl?: string;
   maxTurnsPerRun: number;
   heartbeatEnabled: boolean;
   intervalSec: number;

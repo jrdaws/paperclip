@@ -88,6 +88,8 @@ async function attachGoals(db: Db, rows: ProjectRow[]): Promise<ProjectWithGoals
     const g = map.get(r.id) ?? [];
     return {
       ...r,
+      demoSiteUrl: r.demoSiteUrl ?? null,
+      demoAppUrl: r.demoAppUrl ?? null,
       urlKey: deriveProjectUrlKey(r.name, r.id),
       goalIds: g.map((x) => x.id),
       goals: g,

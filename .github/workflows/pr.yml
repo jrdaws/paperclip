@@ -111,6 +111,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cursor Agent CLI on merged login PATH (informational)
+        continue-on-error: true
+        run: pnpm run verify:cursor-agent-path
+
       - name: Typecheck
         run: pnpm -r typecheck
 

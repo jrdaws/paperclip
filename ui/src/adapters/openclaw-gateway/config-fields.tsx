@@ -12,7 +12,7 @@ import {
 } from "../runtime-json-fields";
 
 const inputClass =
-  "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40";
+  "w-full rounded-md border border-border px-2.5 py-1.5 bg-transparent outline-none text-sm font-mono text-foreground placeholder:text-muted-foreground/50";
 
 function SecretField({
   label,
@@ -132,25 +132,53 @@ export function OpenClawGatewayConfigFields({
         mark={mark}
       />
 
-      {!isCreate && (
-        <>
-          <Field label="Paperclip API URL override">
-            <DraftInput
-              value={
-                eff(
+      <Field
+        label="Paperclip API URL override"
+        hint="Base URL OpenClaw uses in wake text / Paperclip skill (same machine: http://127.0.0.1:3100; Docker→host: http://host.docker.internal:3100)"
+      >
+        <DraftInput
+          value={
+            isCreate
+              ? values!.paperclipApiUrl ?? ""
+              : eff(
                   "adapterConfig",
                   "paperclipApiUrl",
                   String(config.paperclipApiUrl ?? ""),
                 )
-              }
-              onCommit={(v) => mark("adapterConfig", "paperclipApiUrl", v || undefined)}
-              immediate
-              className={inputClass}
-              placeholder="https://paperclip.example"
-            />
-          </Field>
+          }
+          onCommit={(v) =>
+            isCreate
+              ? set!({ paperclipApiUrl: v })
+              : mark("adapterConfig", "paperclipApiUrl", v || undefined)
+          }
+          immediate
+          className={inputClass}
+          placeholder="http://127.0.0.1:3100"
+        />
+      </Field>
 
-          <Field label="Session strategy">
+      <SecretField
+        label="Gateway auth token (x-openclaw-token)"
+        value={
+          isCreate
+            ? values!.gatewayToken ?? ""
+            : effectiveGatewayToken
+        }
+        onCommit={
+          isCreate
+            ? (raw) => set!({ gatewayToken: raw.trim() })
+            : commitGatewayToken
+        }
+        placeholder="From ~/.openclaw/openclaw.json → gateway.auth.token"
+      />
+
+      {!isCreate && (
+        <>
+
+          <Field
+            label="Session strategy"
+            hint="Fixed = one OpenClaw thread per agent (continuity). New hires default to sessionKey paperclip:agent:<id> unless you set a custom key. Per issue = one OpenClaw thread per Paperclip issue (isolation; long keys in OpenClaw until UI metadata lands). Per run = one session per execution."
+          >
             <select
               value={sessionStrategy}
               onChange={(e) => mark("adapterConfig", "sessionKeyStrategy", e.target.value)}
@@ -163,23 +191,19 @@ export function OpenClawGatewayConfigFields({
           </Field>
 
           {sessionStrategy === "fixed" && (
-            <Field label="Session key">
+            <Field
+              label="Session key"
+              hint="Unique per agent for Fixed (otherwise two agents share one OpenClaw thread). Leave default paperclip on hire only if you want the server to auto-replace it with paperclip:agent:<id>. Set a custom string (e.g. paperclip-ceo) to share one thread across agents on purpose."
+            >
               <DraftInput
                 value={eff("adapterConfig", "sessionKey", String(config.sessionKey ?? "paperclip"))}
                 onCommit={(v) => mark("adapterConfig", "sessionKey", v || undefined)}
                 immediate
                 className={inputClass}
-                placeholder="paperclip"
+                placeholder="paperclip-ceo"
               />
             </Field>
           )}
-
-          <SecretField
-            label="Gateway auth token (x-openclaw-token)"
-            value={effectiveGatewayToken}
-            onCommit={commitGatewayToken}
-            placeholder="OpenClaw gateway token"
-          />
 
           <Field label="Role">
             <DraftInput
@@ -209,7 +233,7 @@ export function OpenClawGatewayConfigFields({
 
           <Field label="Wait timeout (ms)">
             <DraftInput
-              value={eff("adapterConfig", "waitTimeoutMs", String(config.waitTimeoutMs ?? "120000"))}
+              value={eff("adapterConfig", "waitTimeoutMs", String(config.waitTimeoutMs ?? "900000"))}
               onCommit={(v) => {
                 const parsed = Number.parseInt(v.trim(), 10);
                 mark(
@@ -220,7 +244,7 @@ export function OpenClawGatewayConfigFields({
               }}
               immediate
               className={inputClass}
-              placeholder="120000"
+              placeholder="900000"
             />
           </Field>
 

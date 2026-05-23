@@ -86,12 +86,21 @@ export const updateProjectWorkspaceSchema = z.object({
 
 export type UpdateProjectWorkspace = z.infer<typeof updateProjectWorkspaceSchema>;
 
+const optionalHttpUrl = z.preprocess((v) => {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v === "string" && v.trim() === "") return null;
+  return v;
+}, z.union([z.string().url(), z.null()]).optional());
+
 const projectFields = {
   /** @deprecated Use goalIds instead */
   goalId: z.string().uuid().optional().nullable(),
   goalIds: z.array(z.string().uuid()).optional(),
   name: z.string().min(1),
   description: z.string().optional().nullable(),
+  demoSiteUrl: optionalHttpUrl,
+  demoAppUrl: optionalHttpUrl,
   status: z.enum(PROJECT_STATUSES).optional().default("backlog"),
   leadAgentId: z.string().uuid().optional().nullable(),
   targetDate: z.string().optional().nullable(),

@@ -1,0 +1,91 @@
+# Monorepo PR Hygiene
+
+Rules for creating clean, CI-passing commits in the Paperclip monorepo.
+
+## Commit Discipline
+
+### Never use `git add -A` or `git add .`
+
+In a monorepo with multiple features in flight, broad staging commands sweep in
+unrelated changes. Always stage files explicitly:
+
+```bash
+git add path/to/specific/file.ts
+```
+
+If you need to stage many files, build the list first and review it:
+
+```bash
+git diff --name-only | grep 'runtime-profile\|your-feature-keyword'
+```
+
+### One feature per commit
+
+Each commit should touch files related to exactly one feature. If `git diff --name-only`
+shows files across unrelated domains (e.g., routines + runtime profiles + company settings),
+split them into separate commits or exclude the unrelated ones.
+
+### Always diff against upstream before pushing
+
+```bash
+git diff --name-only origin/master..HEAD
+```
+
+Review every file. If you see something you didn't intentionally change, restore it:
+
+```bash
+git checkout origin/master -- path/to/unrelated/file
+```
+
+## Package.json Export Maps
+
+Never commit local development export map changes. The repo uses `./src/*.ts` exports
+for development and `./dist/*.js` for publishing. CI typechecks before building, so
+`dist/` references will 404.
+
+If you see this in a diff, restore the upstream version:
+
+```bash
+git checkout origin/master -- packages/*/package.json
+```
+
+## Barrel Export Files (index.ts)
+
+When modifying `packages/shared/src/types/index.ts`, `packages/shared/src/index.ts`,
+or `packages/shared/src/validators/index.ts`:
+
+1. Only add exports for types/schemas that exist in files included in your PR
+2. Never add re-exports for types from other features (company routines, mission control, etc.)
+3. After editing, verify every `from "./module.js"` references a file that is either
+   (a) unchanged from upstream or (b) included in your PR
+
+## Lockfile Policy
+
+Never commit `pnpm-lock.yaml`. The repo CI rejects PRs containing lockfile changes.
+If it gets staged:
+
+```bash
+git reset HEAD pnpm-lock.yaml
+git checkout -- pnpm-lock.yaml
+```
+
+## CI Workflow Syntax
+
+- Use `cd server && pnpm vitest run ...` instead of `pnpm -C server vitest run ...`
+- Place simulation/smoke scripts AFTER the `pnpm build` step (tsx needs compiled packages)
+- Test workflow changes by checking step ordering in the YAML before pushing
+
+## Pre-Push Validation
+
+Run `./scripts/pre-push-check.sh` before every force-push to a PR branch. It catches
+all 7 categories of CI failure automatically.
+
+## Fork Workflow
+
+When the authenticated user lacks push access to the upstream repo:
+
+1. Fork via `gh repo fork <org>/<repo> --clone=false`
+2. Add remote: `git remote add fork https://github.com/<user>/<repo>.git`
+3. Push to fork: `git push -u fork <branch>`
+4. Open cross-fork PR: `gh pr create --repo <org>/<repo> --head <user>:<branch>`
+5. Rebase onto latest upstream before pushing: `git fetch origin master && git rebase origin/master`

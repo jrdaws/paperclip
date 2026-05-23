@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Example LaunchAgent: Paperclip dev with login-shell PATH parity + Cursor API key.
+  Copy to ~/Library/LaunchAgents/ (rename, edit paths and secrets), then:
+    launchctl load ~/Library/LaunchAgents/com.you.paperclip.dev.plist
+
+  Do not commit real CURSOR_API_KEY or machine-specific paths to git.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.paperclip.dev.login-path</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>WorkingDirectory</key>
+  <string>/ABSOLUTE/PATH/TO/paperclip</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd /ABSOLUTE/PATH/TO/paperclip &amp;&amp; exec pnpm run dev:login-path</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CURSOR_API_KEY</key>
+    <string>REPLACE_IN_LOCAL_PLIST_ONLY</string>
+    <key>PATH</key>
+    <string>/Users/you/.local/bin:/Users/you/.cursor/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/paperclip-dev.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/paperclip-dev.stderr.log</string>
+</dict>
+</plist>

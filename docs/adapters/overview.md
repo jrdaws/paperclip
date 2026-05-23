@@ -20,7 +20,7 @@ When a heartbeat fires, Paperclip:
 |---------|----------|-------------|
 | [Claude Local](/adapters/claude-local) | `claude_local` | Runs Claude Code CLI locally |
 | [Codex Local](/adapters/codex-local) | `codex_local` | Runs OpenAI Codex CLI locally |
-| [Gemini Local](/adapters/gemini-local) | `gemini_local` | Runs Gemini CLI locally (experimental — adapter package exists, not yet in stable type enum) |
+| [Gemini Local](/adapters/gemini-local) | `gemini_local` | Runs Gemini CLI locally |
 | OpenCode Local | `opencode_local` | Runs OpenCode CLI locally (multi-provider `provider/model`) |
 | Hermes Local | `hermes_local` | Runs Hermes CLI locally |
 | Cursor | `cursor` | Runs Cursor in background mode |

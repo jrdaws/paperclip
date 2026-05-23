@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   activityLog,
@@ -17,6 +17,7 @@ import {
   issueDocuments,
   issueReadStates,
   issues,
+  issueStatusTransitions,
   labels,
   projectWorkspaces,
   projects,
@@ -1057,6 +1058,14 @@ export function issueService(db: Db) {
           .returning()
           .then((rows) => rows[0] ?? null);
         if (!updated) return null;
+        if (issueData.status && issueData.status !== existing.status) {
+          await tx.insert(issueStatusTransitions).values({
+            companyId: existing.companyId,
+            issueId: id,
+            fromStatus: existing.status,
+            toStatus: issueData.status,
+          });
+        }
         if (nextLabelIds !== undefined) {
           await syncIssueLabels(updated.id, existing.companyId, nextLabelIds, tx);
         }
@@ -1820,6 +1829,21 @@ export function issueService(db: Db) {
         project: a.projectId ? projectMap.get(a.projectId) ?? null : null,
         goal: a.goalId ? goalMap.get(a.goalId) ?? null : null,
       }));
+    },
+
+    listTransitions: async (companyId: string, opts?: { since?: Date; until?: Date }) => {
+      const conditions = [eq(issueStatusTransitions.companyId, companyId)];
+      if (opts?.since) {
+        conditions.push(gte(issueStatusTransitions.createdAt, opts.since));
+      }
+      if (opts?.until) {
+        conditions.push(lte(issueStatusTransitions.createdAt, opts.until));
+      }
+      return db
+        .select()
+        .from(issueStatusTransitions)
+        .where(and(...conditions))
+        .orderBy(asc(issueStatusTransitions.createdAt));
     },
   };
 }

@@ -385,6 +385,49 @@ export function agentRoutes(
     return { ...adapterConfig, devicePrivateKeyPem: generateEd25519PrivateKeyPem() };
   }
 
+  const LEGACY_DEFAULT_OPENCLAW_FIXED_SESSION_KEY = "paperclip";
+
+  function shouldSeedPerAgentOpenClawSessionKey(
+    adapterType: string | null | undefined,
+    adapterConfig: Record<string, unknown> | null,
+  ): boolean {
+    if (adapterType !== "openclaw_gateway") return false;
+    const ac = adapterConfig ?? {};
+    const strategy = String(ac.sessionKeyStrategy ?? "fixed").toLowerCase();
+    if (strategy !== "fixed") return false;
+    const sk =
+      typeof ac.sessionKey === "string" && ac.sessionKey.trim().length > 0
+        ? ac.sessionKey.trim()
+        : "";
+    return sk.length === 0 || sk === LEGACY_DEFAULT_OPENCLAW_FIXED_SESSION_KEY;
+  }
+
+  async function seedPerAgentOpenClawGatewaySessionKey<T extends { id: string; adapterType: string; adapterConfig: unknown }>(
+    agent: T,
+  ): Promise<T> {
+    const ac = asRecord(agent.adapterConfig) ?? {};
+    if (!shouldSeedPerAgentOpenClawSessionKey(agent.adapterType, ac)) {
+      return agent;
+    }
+    const nextKey = `paperclip:agent:${agent.id}`;
+    if (asNonEmptyString(ac.sessionKey) === nextKey) {
+      return agent;
+    }
+    const merged = { ...ac, sessionKey: nextKey };
+    const updated = await svc.update(
+      agent.id,
+      { adapterConfig: merged },
+      {
+        recordRevision: {
+          source: "openclaw_session_key_seed",
+          createdByAgentId: null,
+          createdByUserId: null,
+        },
+      },
+    );
+    return (updated as T | null) ?? { ...agent, adapterConfig: merged };
+  }
+
   function applyCreateDefaultsByAdapterType(
     adapterType: string | null | undefined,
     adapterConfig: Record<string, unknown>,
@@ -409,6 +452,10 @@ export function agentRoutes(
     // OpenCode requires explicit model selection — no default
     if (adapterType === "cursor" && !asNonEmptyString(next.model)) {
       next.model = DEFAULT_CURSOR_LOCAL_MODEL;
+    }
+    if (adapterType === "openclaw_gateway" && !asNonEmptyString(next.url)) {
+      const fromEnv = process.env.PAPERCLIP_DEFAULT_OPENCLAW_GATEWAY_WS_URL?.trim();
+      next.url = fromEnv && fromEnv.length > 0 ? fromEnv : "ws://127.0.0.1:18789";
     }
     return ensureGatewayDeviceKey(adapterType, next);
   }
@@ -1256,7 +1303,8 @@ export function agentRoutes(
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
-    const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent);
+    let agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent);
+    agent = await seedPerAgentOpenClawGatewaySessionKey(agent);
 
     let approval: Awaited<ReturnType<typeof approvalsSvc.getById>> | null = null;
     const actor = getActorInfo(req);
@@ -1401,7 +1449,8 @@ export function agentRoutes(
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
     });
-    const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent);
+    let agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent);
+    agent = await seedPerAgentOpenClawGatewaySessionKey(agent);
 
     const actor = getActorInfo(req);
     await logActivity(db, {

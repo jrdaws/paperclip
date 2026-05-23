@@ -41,6 +41,8 @@ function makeProject(id: string, name: string): Project {
     urlKey: name.toLowerCase(),
     name,
     description: null,
+    demoSiteUrl: null,
+    demoAppUrl: null,
     status: "planned",
     leadAgentId: null,
     targetDate: null,

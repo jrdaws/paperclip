@@ -5,6 +5,16 @@ summary: Docker Compose quickstart
 
 Run Paperclip in Docker without installing Node or pnpm locally.
 
+## Authentication Note
+
+The default `docker-compose.quickstart.yml` ships in **authenticated mode** (`PAPERCLIP_DEPLOYMENT_MODE=authenticated`, `PAPERCLIP_DEPLOYMENT_EXPOSURE=private`). This means:
+
+- You need a `BETTER_AUTH_SECRET` environment variable (or the compose file generates one)
+- The first user to visit the UI claims the board operator seat
+- API requests require authentication (session cookie or API key)
+
+To run in **local trusted mode** (no auth, open access), set `PAPERCLIP_DEPLOYMENT_MODE=local_trusted` and remove the `BETTER_AUTH_SECRET` requirement. See [Deployment Modes](/deploy/deployment-modes) for details.
+
 ## Compose Quickstart (Recommended)
 
 ```sh
@@ -17,6 +27,7 @@ Defaults:
 
 - Host port: `3100`
 - Data directory: `./data/docker-paperclip`
+- Deployment mode: `authenticated` (private)
 
 Override with environment variables:
 

@@ -1,0 +1,198 @@
+---
+description: "Shortcuts: /ap, /dr, and /gov-rollout wrap messages into standard workflows"
+alwaysApply: true
+---
+
+# Command Shortcuts
+
+When the user's message starts or ends with one of these triggers, strip the
+trigger and use the rest as the topic. Don't ask about the workflow — just run it.
+
+## `/ap` — Advanced Prompt
+
+1. **Create** an advanced expert-level prompt `.md` in `workspace/prompts/` (kebab-case filename).
+   Content: comprehensive, expert-level prompt with context, constraints, goals, acceptance criteria, edge cases.
+2. **Read** the prompt file back.
+3. **Execute** it at an advanced expert level.
+
+## `/dr` — Deep Research
+
+1. **Create** a research brief `.md` in `workspace/prompts/` (kebab-case filename).
+2. **Read** the brief back.
+3. **Execute** deep research:
+   - Use WebSearch for broad discovery across multiple queries
+   - Use WebFetch / Firecrawl to scrape the most relevant URLs for full content
+   - Use browser-use subagent for pages that need JavaScript rendering or interaction
+   - Cross-reference multiple sources — never rely on a single page
+   - Save structured findings to `workspace/research/` as a `.md` report
+   - Include: source URLs, key quotes, confidence levels, contradictions found
+
+## `/audit` — Deep Audit
+
+Audit all files touched in the current session (or specified scope). Loop until clean.
+
+1. **Identify scope** — every file created or modified this session, or a specified path.
+2. **Read every file** in full.
+3. **Audit** — bugs, logic errors, linter errors, type errors, missing imports, broken references,
+   security issues, consistency, dead code, missing error handling.
+4. **Test** — run linter (ReadLints), existing test suites, build checks.
+5. **Fix** everything found. Don't just report — fix the code.
+6. **Re-audit** — re-read fixed files, repeat 3-5 until zero issues.
+7. **Report** — summarize findings, fixes, and confirm clean.
+
+## `/verify` — Functional Verification
+
+Prove that tools, features, or pipelines actually work by comparing actual outputs against predicted outputs. Uses the CLASSic framework (Cost, Latency, Accuracy, Stability, Security).
+
+1. **Detect scope** — `/verify` = everything, `/verify stock-analysis` = single tool, `/verify security` = security only.
+2. **Inventory** — list every testable unit, check env vars.
+3. **Fixtures** — build deterministic inputs with hand-calculated expected outputs. Trace the code by hand. EXACT for pure tools, CONSTRAINED for API tools, SEMANTIC for LLM tools, ROUND-TRIP for stateful tools, NEGATIVE for error cases.
+4. **Execute** — run every fixture, capture full responses, compare actual vs predicted.
+5. **Security** — SSRF (169.254.x, 127.0.0.1, 10.x, file://), path traversal (../), prompt injection ("ignore instructions"), resource exhaustion (500KB+ input).
+6. **Performance** — run each unit 5x, record p50/p95 latency, cost per call.
+7. **Stability** — run deterministic units 3x, hash outputs, verify identical.
+8. **Regression** — validate shared configs, verify output contract compliance, check shared utility imports.
+9. **Idempotency** — fire stateful ops twice, verify no corruption.
+10. **Degradation** — test with missing API keys, unreachable services. Must fail gracefully.
+11. **Governance** — verify skill parameters match tool capabilities.
+12. **Report** — CLASSic scores + pass/fail tables. Save to `workspace/research/verify-report-[target]-[date].md`.
+
+Full methodology: read the `/verify` skill at `~/.cursor/skills/verify/SKILL.md`.
+
+## `/distill` — Reduce to Essence
+
+Five-phase optimization. Full methodology: read the `/distill` skill.
+
+## `/skills` — Skill Discovery & Self-Improvement
+
+Run the full self-improvement protocol: discover what tools and skills are available,
+recommend the right ones for the task, chain them into workflows, and log learnings.
+
+1. **Read** the self-improvement skill at `workspace/skills/self-improvement/SKILL.md`.
+2. **Execute** the requested mode (or all four if no mode specified):
+   - **Discover** — probe running services for tools, scan directories for skills
+   - **Recommend** — match the user's problem to the best skill(s)
+   - **Chain** — execute a multi-skill workflow if the task warrants it
+   - **Learn** — log outcomes to `workspace/docs/agent-learnings.md`
+3. **Report** — structured self-improvement report with discoveries, recommendations, and learnings.
+
+Examples: `/skills` (full discovery), `/skills recommend` (match task to skills), `/skills what can you do`
+
+## `/status` — Unified System Status Dashboard
+
+Run the status-dashboard skill to produce a complete environment report:
+
+1. **Probe** all services (MC runtime-badges, Paperclip templates API, pricing data).
+2. **Assess** stack fitness for the current mission.
+3. **Evaluate** model tier cost-optimality.
+4. **List** available agent templates.
+5. **Render** unified dashboard with health table, fitness score, cost analysis, and prioritized action items.
+
+Example: `/status` (full dashboard), `/status what should I optimize` (dashboard + recommendation focus)
+
+## `/probe` — Probe, Compose, Render
+
+Auto-discover live services, compose multi-source data, and render structured dashboards.
+
+1. **Discover** — probe all known service endpoints concurrently (Paperclip, MC, CrewAI, LangGraph, custom).
+2. **Compose** — merge health data, runtime badges, template catalog, and any user-specified data sources.
+3. **Render** — output a structured report: service health matrix, runtime capabilities, summary, and action items.
+
+If a scope is given, probe only those services. Otherwise, probe everything.
+
+Example: `/probe` (all services), `/probe paperclip mc` (specific targets), `/probe and verify` (chain with verify)
+
+## `/gov-rollout` — Governance Operations Hardening
+
+Run the proven governance rollout chain:
+
+1. **Audit** — run `/audit` on touched governance files and fix issues until clean.
+2. **Intake + release gate** — execute one live intake card and one release-gate artifact for the target skill(s).
+3. **Policy automation** — run conformance validators (installer policy + adapter contract checks) and capture reports.
+4. **Index update** — refresh `workspace/docs/reference/skill-governance-index.json` and markdown rendering.
+5. **Report** — summarize PASS/FAIL, quarantine updates, and next re-eval trigger.
+
+Example: `/gov-rollout reflection adapters`
+
+## `/reflect` — Session Reflection
+
+Capture corrections, preferences, and patterns from the current session and route
+them to the right skills/rules. Run at session end or after significant corrections.
+
+1. **Read** the self-improvement skill at `workspace/skills/self-improvement/SKILL.md`
+2. **Execute** Mode 5 (Reflect):
+   - Scan conversation for correction signals (0.60+ confidence)
+   - Extract and classify each learning
+   - Route to destination (skill update, new rule, or new skill)
+   - Present cards for human review — **never auto-apply**
+   - Apply only after explicit approval
+   - Log to `workspace/docs/agent-learnings.md`
+3. **Report** — summary of captures, applications, and skips
+
+Examples: `/reflect` (full session scan), `/reflect quick` (high-confidence only)
+
+## `/wave-launch` — Wave Launch
+
+Auto-scaffold and execute a full dev-skill wave lifecycle. Strip trigger, use the rest as wave number and optional skill list.
+
+1. **Detect next wave ID** — If no number given, read `dev-skill-wave-config.json` and increment the highest wave ID.
+2. **Recon** — Read tool/skill source files for the target skills. Identify API surfaces, inputs, env vars, and gaps.
+3. **Scaffold** — Create wave directory, `WAVE{N}-PLAN.md`, `wave{N}-feasible-backlog.json`, and skill subdirectories with `SKILL.md` + `EVAL.md`.
+4. **Register** — Add wave entry to `dev-skill-wave-config.json` and CI workflow reprove matrix.
+5. **Build** — Author governed skill playbooks with frontmatter, workflow phases, curl examples, guardrails, severity model, evidence protocol, and output contract.
+6. **Validate** — Run `validate-dev-skill-wave-integrity.py --wave {N}` until green.
+7. **Deploy** — Copy skills to `workspace/skills/` production path.
+8. **Audit** — Deep audit all created files.
+9. **Verify** — Run EVAL fixtures, stability checks, and governance alignment.
+10. **Report** — Save verify report and update agent learnings.
+
+Examples:
+- `/wave-launch 13 search-synthesizer company-researcher` — launches Wave 13 with those 2 tools
+- `/wave-launch` — auto-detects next wave, asks which tools to cover
+
+## `/chain` — Composable Skill Pipeline
+
+Execute multi-skill pipelines defined in `.cursor/skills/CHAINS.md`.
+
+1. **Load** chain definition from `CHAINS.md` by name.
+2. **Plan** — display numbered steps, confirm with user.
+3. **Execute** — for each step, read the skill's `SKILL.md`, execute with previous step's output as input, present results.
+4. **Control** — user can continue, skip, abort, insert ad-hoc steps, or resume from a step.
+
+Syntax:
+- `/chain <chain-name> "<topic>"` — run a named chain
+- `/chain list` — show all available chains
+- `/chain <chain-name> --dry-run` — preview without executing
+- `/chain <chain-name> --step N` — resume from step N
+- `/chain <chain-name> --skip N` — skip step N
+
+Examples:
+- `/chain content-pipeline "AI cookware trends"`
+- `/chain intel-radar "PFAS regulations"`
+- `/chain feature-ship --dry-run`
+- `/chain list`
+
+## Trigger Syntax
+
+All equivalent — trigger can be at the start or end:
+- `/ap refactor the auth module`
+- `refactor the auth module /ap`
+- `/dr PFAS regulations in EU 2026`
+- `competitive analysis of kitchen review sites /dr`
+- `/verify stock-analysis`
+- `/verify` (tests everything)
+- `/distill the sidebar`
+- `/skills` (discover everything)
+- `/skills recommend a workflow for this`
+- `/gov-rollout reflection adapters`
+- `/status` (full system dashboard)
+- `/status what should I optimize`
+- `/probe` (discover all services)
+- `/probe paperclip mc` (specific targets)
+- `/wave-launch 13 search-synthesizer company-researcher`
+- `/chain content-pipeline "AI cookware trends"`
+- `/chain list` (show all chains)
+- `/chain feature-ship --dry-run` (preview a chain)
+- `/reflect` (capture session corrections)
+- `/reflect quick` (high-confidence only)
+- `/wave-launch` (auto-detect next wave)

@@ -43,10 +43,12 @@ export {
   companySkillCreateSchema,
   companySkillFileDetailSchema,
   companySkillFileUpdateSchema,
+  companySkillManifestSyncRequestSchema,
   type CompanySkillImport,
   type CompanySkillProjectScan,
   type CompanySkillCreate,
   type CompanySkillFileUpdate,
+  type CompanySkillManifestSync,
 } from "./company-skill.js";
 export {
   agentSkillStateSchema,

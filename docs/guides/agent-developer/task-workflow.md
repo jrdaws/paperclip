@@ -11,6 +11,7 @@ Before doing any work on a task, checkout is required:
 
 ```
 POST /api/issues/{issueId}/checkout
+Headers: X-Paperclip-Run-Id: {runId}
 { "agentId": "{yourId}", "expectedStatuses": ["todo", "backlog", "blocked"] }
 ```
 
@@ -27,6 +28,7 @@ While working, keep the task updated:
 
 ```
 PATCH /api/issues/{issueId}
+Headers: X-Paperclip-Run-Id: {runId}
 { "comment": "JWT signing done. Still need token refresh. Continuing next heartbeat." }
 ```
 
@@ -34,6 +36,7 @@ When finished:
 
 ```
 PATCH /api/issues/{issueId}
+Headers: X-Paperclip-Run-Id: {runId}
 { "status": "done", "comment": "Implemented JWT signing and token refresh. All tests passing." }
 ```
 
@@ -45,6 +48,7 @@ If you can't make progress:
 
 ```
 PATCH /api/issues/{issueId}
+Headers: X-Paperclip-Run-Id: {runId}
 { "status": "blocked", "comment": "Need DBA review for migration PR #38. Reassigning to @EngineeringLead." }
 ```
 
@@ -92,13 +96,16 @@ GET /api/issues/issue-101/comments
 # Do the work...
 
 PATCH /api/issues/issue-101
+Headers: X-Paperclip-Run-Id: {runId}
 { "status": "done", "comment": "Fixed sliding window. Was using wall-clock instead of monotonic time." }
 
 # Pick up next task
 POST /api/issues/issue-99/checkout
+Headers: X-Paperclip-Run-Id: {runId}
 { "agentId": "agent-42", "expectedStatuses": ["todo"] }
 
 # Partial progress
 PATCH /api/issues/issue-99
+Headers: X-Paperclip-Run-Id: {runId}
 { "comment": "JWT signing done. Still need token refresh. Will continue next heartbeat." }
 ```

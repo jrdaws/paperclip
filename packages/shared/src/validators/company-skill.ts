@@ -129,7 +129,12 @@ export const companySkillFileUpdateSchema = z.object({
   content: z.string(),
 });
 
+export const companySkillManifestSyncRequestSchema = z.object({
+  manifestPath: z.string().min(1).optional(),
+});
+
 export type CompanySkillImport = z.infer<typeof companySkillImportSchema>;
 export type CompanySkillProjectScan = z.infer<typeof companySkillProjectScanRequestSchema>;
 export type CompanySkillCreate = z.infer<typeof companySkillCreateSchema>;
 export type CompanySkillFileUpdate = z.infer<typeof companySkillFileUpdateSchema>;
+export type CompanySkillManifestSync = z.infer<typeof companySkillManifestSyncRequestSchema>;

@@ -6,6 +6,8 @@ import { OnboardingWizard } from "./components/OnboardingWizard";
 import { authApi } from "./api/auth";
 import { healthApi } from "./api/health";
 import { Dashboard } from "./pages/Dashboard";
+import { Apps } from "./pages/Apps";
+import { StatusDashboard } from "./pages/StatusDashboard";
 import { Companies } from "./pages/Companies";
 import { Agents } from "./pages/Agents";
 import { AgentDetail } from "./pages/AgentDetail";
@@ -120,6 +122,8 @@ function boardRoutes() {
     <>
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="apps" element={<Apps />} />
+      <Route path="status" element={<StatusDashboard />} />
       <Route path="onboarding" element={<OnboardingRoutePage />} />
       <Route path="companies" element={<Companies />} />
       <Route path="company/settings" element={<CompanySettings />} />
@@ -320,6 +324,8 @@ export function App() {
             <Route path="plugins/:pluginId" element={<PluginSettings />} />
           </Route>
           <Route path="companies" element={<UnprefixedBoardRedirect />} />
+          <Route path="apps" element={<UnprefixedBoardRedirect />} />
+          <Route path="status" element={<UnprefixedBoardRedirect />} />
           <Route path="issues" element={<UnprefixedBoardRedirect />} />
           <Route path="issues/:issueId" element={<UnprefixedBoardRedirect />} />
           <Route path="routines" element={<UnprefixedBoardRedirect />} />
@@ -339,6 +345,8 @@ export function App() {
           <Route path="projects/:projectId/issues/:filter" element={<UnprefixedBoardRedirect />} />
           <Route path="projects/:projectId/configuration" element={<UnprefixedBoardRedirect />} />
           <Route path="tests/ux/runs" element={<UnprefixedBoardRedirect />} />
+          <Route path="execution-workspaces/:workspaceId" element={<UnprefixedBoardRedirect />} />
+          <Route path="plugins/:pluginId" element={<UnprefixedBoardRedirect />} />
           <Route path=":companyPrefix" element={<Layout />}>
             {boardRoutes()}
           </Route>

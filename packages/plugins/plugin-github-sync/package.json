@@ -1,0 +1,41 @@
+{
+  "name": "@paperclipai/plugin-github-sync",
+  "version": "0.1.0",
+  "description": "Bi-directional GitHub issue sync scaffold for Paperclip",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js",
+    "ui": "./dist/ui/"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "pnpm --filter @paperclipai/plugin-connector-core build && tsc --noEmit"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-connector-core": "workspace:*",
+    "@paperclipai/plugin-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
